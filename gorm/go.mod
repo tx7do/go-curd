@@ -50,4 +50,3 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 )
 
-replace github.com/tx7do/go-utils => ../

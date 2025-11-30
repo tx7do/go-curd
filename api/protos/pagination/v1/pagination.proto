@@ -71,16 +71,44 @@ enum Operator {
   // 范围与正则
   BETWEEN = 14;   // BETWEEN a AND b（或服务端映射为 >=a AND <=b）
   REGEXP = 15;    // 正则匹配（DB/引擎支持）
+  IREGEXP = 16;    // 不区分大小写的正则匹配
 
   // 语义化的字符串操作
-  CONTAINS = 16;     // 包含（等价于 LIKE %v%）
-  STARTS_WITH = 17;  // 前缀（等价于 LIKE v%）
-  ENDS_WITH = 18;    // 后缀（等价于 LIKE %v）
+  CONTAINS = 17;     // 包含（等价于 LIKE %v%）
+  STARTS_WITH = 18;  // 前缀（等价于 LIKE v%）
+  ENDS_WITH = 19;    // 后缀（等价于 LIKE %v）
+  ICONTAINS = 20;     // 不区分大小写的包含
+  ISTARTS_WITH = 21; // 不区分大小写的前缀匹配
+  IENDS_WITH = 22;   // 不区分大小写的后缀匹配
 
   // JSON / 数组 / 集合相关（按需在服务端映射为具体 DB 运算）
-  JSON_CONTAINS = 19;   // JSON 包含（如 Postgres/ MySQL 的 JSON 包含）
-  ARRAY_CONTAINS = 20;  // 数组包含某元素
-  EXISTS = 21;          // 子查询 / 存在性（按需实现）
+  JSON_CONTAINS = 23;   // JSON 包含（如 Postgres/ MySQL 的 JSON 包含）
+  ARRAY_CONTAINS = 24;  // 数组包含某元素
+  EXISTS = 25;          // 子查询 / 存在性（按需实现）
+
+  SEARCH = 26;       // 全文/模糊搜索（服务端按需实现）
+  EXACT = 27;        // 精确匹配（完全相等）
+  IEXACT = 28;        // 不区分大小写的精确匹配
+}
+
+// 日期时间部分枚举
+enum DatePart {
+  DATE_PART_UNSPECIFIED = 0;
+
+  DATE = 1; // 日期
+  YEAR = 2; // 年
+  ISO_YEAR = 3; // ISO 8601 一年中的周数
+  QUARTER = 4; // 季度
+  MONTH = 5; // 月
+  WEEK = 6; // ISO 8601 周编号 一年中的周数
+  WEEK_DAY = 7; // 星期几
+  ISO_WEEK_DAY = 8; // ISO 8601 星期几
+  DAY = 9; // 日
+  TIME = 10; // 时间（小时:分钟:秒）
+  HOUR = 11; // 小时
+  MINUTE = 12; // 分钟
+  SECOND = 13; // 秒
+  MICROSECOND = 14; // 微秒
 }
 
 // 单个条件

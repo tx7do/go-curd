@@ -51,14 +51,21 @@ const (
 	// 范围与正则
 	Operator_BETWEEN Operator = 14 // BETWEEN a AND b（或服务端映射为 >=a AND <=b）
 	Operator_REGEXP  Operator = 15 // 正则匹配（DB/引擎支持）
+	Operator_IREGEXP Operator = 16 // 不区分大小写的正则匹配
 	// 语义化的字符串操作
-	Operator_CONTAINS    Operator = 16 // 包含（等价于 LIKE %v%）
-	Operator_STARTS_WITH Operator = 17 // 前缀（等价于 LIKE v%）
-	Operator_ENDS_WITH   Operator = 18 // 后缀（等价于 LIKE %v）
+	Operator_CONTAINS     Operator = 17 // 包含（等价于 LIKE %v%）
+	Operator_STARTS_WITH  Operator = 18 // 前缀（等价于 LIKE v%）
+	Operator_ENDS_WITH    Operator = 19 // 后缀（等价于 LIKE %v）
+	Operator_ICONTAINS    Operator = 20 // 不区分大小写的包含
+	Operator_ISTARTS_WITH Operator = 21 // 不区分大小写的前缀匹配
+	Operator_IENDS_WITH   Operator = 22 // 不区分大小写的后缀匹配
 	// JSON / 数组 / 集合相关（按需在服务端映射为具体 DB 运算）
-	Operator_JSON_CONTAINS  Operator = 19 // JSON 包含（如 Postgres/ MySQL 的 JSON 包含）
-	Operator_ARRAY_CONTAINS Operator = 20 // 数组包含某元素
-	Operator_EXISTS         Operator = 21 // 子查询 / 存在性（按需实现）
+	Operator_JSON_CONTAINS  Operator = 23 // JSON 包含（如 Postgres/ MySQL 的 JSON 包含）
+	Operator_ARRAY_CONTAINS Operator = 24 // 数组包含某元素
+	Operator_EXISTS         Operator = 25 // 子查询 / 存在性（按需实现）
+	Operator_SEARCH         Operator = 26 // 全文/模糊搜索（服务端按需实现）
+	Operator_EXACT          Operator = 27 // 精确匹配（完全相等）
+	Operator_IEXACT         Operator = 28 // 不区分大小写的精确匹配
 )
 
 // Enum value maps for Operator.
@@ -80,12 +87,19 @@ var (
 		13: "IS_NOT_NULL",
 		14: "BETWEEN",
 		15: "REGEXP",
-		16: "CONTAINS",
-		17: "STARTS_WITH",
-		18: "ENDS_WITH",
-		19: "JSON_CONTAINS",
-		20: "ARRAY_CONTAINS",
-		21: "EXISTS",
+		16: "IREGEXP",
+		17: "CONTAINS",
+		18: "STARTS_WITH",
+		19: "ENDS_WITH",
+		20: "ICONTAINS",
+		21: "ISTARTS_WITH",
+		22: "IENDS_WITH",
+		23: "JSON_CONTAINS",
+		24: "ARRAY_CONTAINS",
+		25: "EXISTS",
+		26: "SEARCH",
+		27: "EXACT",
+		28: "IEXACT",
 	}
 	Operator_value = map[string]int32{
 		"OPERATOR_UNSPECIFIED": 0,
@@ -104,12 +118,19 @@ var (
 		"IS_NOT_NULL":          13,
 		"BETWEEN":              14,
 		"REGEXP":               15,
-		"CONTAINS":             16,
-		"STARTS_WITH":          17,
-		"ENDS_WITH":            18,
-		"JSON_CONTAINS":        19,
-		"ARRAY_CONTAINS":       20,
-		"EXISTS":               21,
+		"IREGEXP":              16,
+		"CONTAINS":             17,
+		"STARTS_WITH":          18,
+		"ENDS_WITH":            19,
+		"ICONTAINS":            20,
+		"ISTARTS_WITH":         21,
+		"IENDS_WITH":           22,
+		"JSON_CONTAINS":        23,
+		"ARRAY_CONTAINS":       24,
+		"EXISTS":               25,
+		"SEARCH":               26,
+		"EXACT":                27,
+		"IEXACT":               28,
 	}
 )
 
@@ -138,6 +159,92 @@ func (x Operator) Number() protoreflect.EnumNumber {
 // Deprecated: Use Operator.Descriptor instead.
 func (Operator) EnumDescriptor() ([]byte, []int) {
 	return file_pagination_v1_pagination_proto_rawDescGZIP(), []int{0}
+}
+
+// 日期时间部分枚举
+type DatePart int32
+
+const (
+	DatePart_DATE_PART_UNSPECIFIED DatePart = 0
+	DatePart_DATE                  DatePart = 1  // 日期
+	DatePart_YEAR                  DatePart = 2  // 年
+	DatePart_ISO_YEAR              DatePart = 3  // ISO 8601 一年中的周数
+	DatePart_QUARTER               DatePart = 4  // 季度
+	DatePart_MONTH                 DatePart = 5  // 月
+	DatePart_WEEK                  DatePart = 6  // ISO 8601 周编号 一年中的周数
+	DatePart_WEEK_DAY              DatePart = 7  // 星期几
+	DatePart_ISO_WEEK_DAY          DatePart = 8  // ISO 8601 星期几
+	DatePart_DAY                   DatePart = 9  // 日
+	DatePart_TIME                  DatePart = 10 // 时间（小时:分钟:秒）
+	DatePart_HOUR                  DatePart = 11 // 小时
+	DatePart_MINUTE                DatePart = 12 // 分钟
+	DatePart_SECOND                DatePart = 13 // 秒
+	DatePart_MICROSECOND           DatePart = 14 // 微秒
+)
+
+// Enum value maps for DatePart.
+var (
+	DatePart_name = map[int32]string{
+		0:  "DATE_PART_UNSPECIFIED",
+		1:  "DATE",
+		2:  "YEAR",
+		3:  "ISO_YEAR",
+		4:  "QUARTER",
+		5:  "MONTH",
+		6:  "WEEK",
+		7:  "WEEK_DAY",
+		8:  "ISO_WEEK_DAY",
+		9:  "DAY",
+		10: "TIME",
+		11: "HOUR",
+		12: "MINUTE",
+		13: "SECOND",
+		14: "MICROSECOND",
+	}
+	DatePart_value = map[string]int32{
+		"DATE_PART_UNSPECIFIED": 0,
+		"DATE":                  1,
+		"YEAR":                  2,
+		"ISO_YEAR":              3,
+		"QUARTER":               4,
+		"MONTH":                 5,
+		"WEEK":                  6,
+		"WEEK_DAY":              7,
+		"ISO_WEEK_DAY":          8,
+		"DAY":                   9,
+		"TIME":                  10,
+		"HOUR":                  11,
+		"MINUTE":                12,
+		"SECOND":                13,
+		"MICROSECOND":           14,
+	}
+)
+
+func (x DatePart) Enum() *DatePart {
+	p := new(DatePart)
+	*p = x
+	return p
+}
+
+func (x DatePart) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DatePart) Descriptor() protoreflect.EnumDescriptor {
+	return file_pagination_v1_pagination_proto_enumTypes[1].Descriptor()
+}
+
+func (DatePart) Type() protoreflect.EnumType {
+	return &file_pagination_v1_pagination_proto_enumTypes[1]
+}
+
+func (x DatePart) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DatePart.Descriptor instead.
+func (DatePart) EnumDescriptor() ([]byte, []int) {
+	return file_pagination_v1_pagination_proto_rawDescGZIP(), []int{1}
 }
 
 // 过滤表达式类型
@@ -174,11 +281,11 @@ func (x ExprType) String() string {
 }
 
 func (ExprType) Descriptor() protoreflect.EnumDescriptor {
-	return file_pagination_v1_pagination_proto_enumTypes[1].Descriptor()
+	return file_pagination_v1_pagination_proto_enumTypes[2].Descriptor()
 }
 
 func (ExprType) Type() protoreflect.EnumType {
-	return &file_pagination_v1_pagination_proto_enumTypes[1]
+	return &file_pagination_v1_pagination_proto_enumTypes[2]
 }
 
 func (x ExprType) Number() protoreflect.EnumNumber {
@@ -187,7 +294,7 @@ func (x ExprType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ExprType.Descriptor instead.
 func (ExprType) EnumDescriptor() ([]byte, []int) {
-	return file_pagination_v1_pagination_proto_rawDescGZIP(), []int{1}
+	return file_pagination_v1_pagination_proto_rawDescGZIP(), []int{2}
 }
 
 // 排序方向（ASC/DESC，默认ASC）
@@ -221,11 +328,11 @@ func (x Sorting_Order) String() string {
 }
 
 func (Sorting_Order) Descriptor() protoreflect.EnumDescriptor {
-	return file_pagination_v1_pagination_proto_enumTypes[2].Descriptor()
+	return file_pagination_v1_pagination_proto_enumTypes[3].Descriptor()
 }
 
 func (Sorting_Order) Type() protoreflect.EnumType {
-	return &file_pagination_v1_pagination_proto_enumTypes[2]
+	return &file_pagination_v1_pagination_proto_enumTypes[3]
 }
 
 func (x Sorting_Order) Number() protoreflect.EnumNumber {
@@ -1272,7 +1379,7 @@ const file_pagination_v1_pagination_proto_rawDesc = "" +
 	"\v_field_mask\"v\n" +
 	"\x12PaginationResponse\x126\n" +
 	"\x04meta\x18\x02 \x01(\v2\".pagination.PaginationResponseMetaR\x04meta\x12(\n" +
-	"\x04data\x18\x01 \x03(\v2\x14.google.protobuf.AnyR\x04data*\xa3\x02\n" +
+	"\x04data\x18\x01 \x03(\v2\x14.google.protobuf.AnyR\x04data*\x84\x03\n" +
 	"\bOperator\x12\x18\n" +
 	"\x14OPERATOR_UNSPECIFIED\x10\x00\x12\x06\n" +
 	"\x02EQ\x10\x01\x12\a\n" +
@@ -1291,14 +1398,43 @@ const file_pagination_v1_pagination_proto_rawDesc = "" +
 	"\vIS_NOT_NULL\x10\r\x12\v\n" +
 	"\aBETWEEN\x10\x0e\x12\n" +
 	"\n" +
-	"\x06REGEXP\x10\x0f\x12\f\n" +
-	"\bCONTAINS\x10\x10\x12\x0f\n" +
-	"\vSTARTS_WITH\x10\x11\x12\r\n" +
-	"\tENDS_WITH\x10\x12\x12\x11\n" +
-	"\rJSON_CONTAINS\x10\x13\x12\x12\n" +
-	"\x0eARRAY_CONTAINS\x10\x14\x12\n" +
+	"\x06REGEXP\x10\x0f\x12\v\n" +
+	"\aIREGEXP\x10\x10\x12\f\n" +
+	"\bCONTAINS\x10\x11\x12\x0f\n" +
+	"\vSTARTS_WITH\x10\x12\x12\r\n" +
+	"\tENDS_WITH\x10\x13\x12\r\n" +
+	"\tICONTAINS\x10\x14\x12\x10\n" +
+	"\fISTARTS_WITH\x10\x15\x12\x0e\n" +
 	"\n" +
-	"\x06EXISTS\x10\x15*6\n" +
+	"IENDS_WITH\x10\x16\x12\x11\n" +
+	"\rJSON_CONTAINS\x10\x17\x12\x12\n" +
+	"\x0eARRAY_CONTAINS\x10\x18\x12\n" +
+	"\n" +
+	"\x06EXISTS\x10\x19\x12\n" +
+	"\n" +
+	"\x06SEARCH\x10\x1a\x12\t\n" +
+	"\x05EXACT\x10\x1b\x12\n" +
+	"\n" +
+	"\x06IEXACT\x10\x1c*\xcf\x01\n" +
+	"\bDatePart\x12\x19\n" +
+	"\x15DATE_PART_UNSPECIFIED\x10\x00\x12\b\n" +
+	"\x04DATE\x10\x01\x12\b\n" +
+	"\x04YEAR\x10\x02\x12\f\n" +
+	"\bISO_YEAR\x10\x03\x12\v\n" +
+	"\aQUARTER\x10\x04\x12\t\n" +
+	"\x05MONTH\x10\x05\x12\b\n" +
+	"\x04WEEK\x10\x06\x12\f\n" +
+	"\bWEEK_DAY\x10\a\x12\x10\n" +
+	"\fISO_WEEK_DAY\x10\b\x12\a\n" +
+	"\x03DAY\x10\t\x12\b\n" +
+	"\x04TIME\x10\n" +
+	"\x12\b\n" +
+	"\x04HOUR\x10\v\x12\n" +
+	"\n" +
+	"\x06MINUTE\x10\f\x12\n" +
+	"\n" +
+	"\x06SECOND\x10\r\x12\x0f\n" +
+	"\vMICROSECOND\x10\x0e*6\n" +
 	"\bExprType\x12\x19\n" +
 	"\x15EXPR_TYPE_UNSPECIFIED\x10\x00\x12\a\n" +
 	"\x03AND\x10\x01\x12\x06\n" +
@@ -1320,52 +1456,53 @@ func file_pagination_v1_pagination_proto_rawDescGZIP() []byte {
 	return file_pagination_v1_pagination_proto_rawDescData
 }
 
-var file_pagination_v1_pagination_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_pagination_v1_pagination_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_pagination_v1_pagination_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_pagination_v1_pagination_proto_goTypes = []any{
 	(Operator)(0),                  // 0: pagination.Operator
-	(ExprType)(0),                  // 1: pagination.ExprType
-	(Sorting_Order)(0),             // 2: pagination.Sorting.Order
-	(*Sorting)(nil),                // 3: pagination.Sorting
-	(*Condition)(nil),              // 4: pagination.Condition
-	(*FilterExpr)(nil),             // 5: pagination.FilterExpr
-	(*PageBasedPagination)(nil),    // 6: pagination.PageBasedPagination
-	(*OffsetBasedPagination)(nil),  // 7: pagination.OffsetBasedPagination
-	(*TokenBasedPagination)(nil),   // 8: pagination.TokenBasedPagination
-	(*NoPaging)(nil),               // 9: pagination.NoPaging
-	(*PagingRequest)(nil),          // 10: pagination.PagingRequest
-	(*PaginationResponseMeta)(nil), // 11: pagination.PaginationResponseMeta
-	(*PagingResponse)(nil),         // 12: pagination.PagingResponse
-	(*PaginationRequest)(nil),      // 13: pagination.PaginationRequest
-	(*PaginationResponse)(nil),     // 14: pagination.PaginationResponse
-	(*fieldmaskpb.FieldMask)(nil),  // 15: google.protobuf.FieldMask
-	(*wrapperspb.UInt64Value)(nil), // 16: google.protobuf.UInt64Value
-	(*wrapperspb.UInt32Value)(nil), // 17: google.protobuf.UInt32Value
-	(*anypb.Any)(nil),              // 18: google.protobuf.Any
+	(DatePart)(0),                  // 1: pagination.DatePart
+	(ExprType)(0),                  // 2: pagination.ExprType
+	(Sorting_Order)(0),             // 3: pagination.Sorting.Order
+	(*Sorting)(nil),                // 4: pagination.Sorting
+	(*Condition)(nil),              // 5: pagination.Condition
+	(*FilterExpr)(nil),             // 6: pagination.FilterExpr
+	(*PageBasedPagination)(nil),    // 7: pagination.PageBasedPagination
+	(*OffsetBasedPagination)(nil),  // 8: pagination.OffsetBasedPagination
+	(*TokenBasedPagination)(nil),   // 9: pagination.TokenBasedPagination
+	(*NoPaging)(nil),               // 10: pagination.NoPaging
+	(*PagingRequest)(nil),          // 11: pagination.PagingRequest
+	(*PaginationResponseMeta)(nil), // 12: pagination.PaginationResponseMeta
+	(*PagingResponse)(nil),         // 13: pagination.PagingResponse
+	(*PaginationRequest)(nil),      // 14: pagination.PaginationRequest
+	(*PaginationResponse)(nil),     // 15: pagination.PaginationResponse
+	(*fieldmaskpb.FieldMask)(nil),  // 16: google.protobuf.FieldMask
+	(*wrapperspb.UInt64Value)(nil), // 17: google.protobuf.UInt64Value
+	(*wrapperspb.UInt32Value)(nil), // 18: google.protobuf.UInt32Value
+	(*anypb.Any)(nil),              // 19: google.protobuf.Any
 }
 var file_pagination_v1_pagination_proto_depIdxs = []int32{
-	2,  // 0: pagination.Sorting.order:type_name -> pagination.Sorting.Order
+	3,  // 0: pagination.Sorting.order:type_name -> pagination.Sorting.Order
 	0,  // 1: pagination.Condition.op:type_name -> pagination.Operator
-	1,  // 2: pagination.FilterExpr.type:type_name -> pagination.ExprType
-	4,  // 3: pagination.FilterExpr.conditions:type_name -> pagination.Condition
-	5,  // 4: pagination.FilterExpr.groups:type_name -> pagination.FilterExpr
-	3,  // 5: pagination.PagingRequest.sorting:type_name -> pagination.Sorting
-	5,  // 6: pagination.PagingRequest.filter_expr:type_name -> pagination.FilterExpr
-	15, // 7: pagination.PagingRequest.field_mask:type_name -> google.protobuf.FieldMask
-	16, // 8: pagination.PaginationResponseMeta.total:type_name -> google.protobuf.UInt64Value
-	17, // 9: pagination.PaginationResponseMeta.total_pages:type_name -> google.protobuf.UInt32Value
-	17, // 10: pagination.PaginationResponseMeta.current_page:type_name -> google.protobuf.UInt32Value
-	16, // 11: pagination.PaginationResponseMeta.current_offset:type_name -> google.protobuf.UInt64Value
-	16, // 12: pagination.PagingResponse.total:type_name -> google.protobuf.UInt64Value
-	6,  // 13: pagination.PaginationRequest.page_based:type_name -> pagination.PageBasedPagination
-	7,  // 14: pagination.PaginationRequest.offset_based:type_name -> pagination.OffsetBasedPagination
-	8,  // 15: pagination.PaginationRequest.token_based:type_name -> pagination.TokenBasedPagination
-	9,  // 16: pagination.PaginationRequest.no_paging:type_name -> pagination.NoPaging
-	3,  // 17: pagination.PaginationRequest.sorting:type_name -> pagination.Sorting
-	5,  // 18: pagination.PaginationRequest.filter_expr:type_name -> pagination.FilterExpr
-	15, // 19: pagination.PaginationRequest.field_mask:type_name -> google.protobuf.FieldMask
-	11, // 20: pagination.PaginationResponse.meta:type_name -> pagination.PaginationResponseMeta
-	18, // 21: pagination.PaginationResponse.data:type_name -> google.protobuf.Any
+	2,  // 2: pagination.FilterExpr.type:type_name -> pagination.ExprType
+	5,  // 3: pagination.FilterExpr.conditions:type_name -> pagination.Condition
+	6,  // 4: pagination.FilterExpr.groups:type_name -> pagination.FilterExpr
+	4,  // 5: pagination.PagingRequest.sorting:type_name -> pagination.Sorting
+	6,  // 6: pagination.PagingRequest.filter_expr:type_name -> pagination.FilterExpr
+	16, // 7: pagination.PagingRequest.field_mask:type_name -> google.protobuf.FieldMask
+	17, // 8: pagination.PaginationResponseMeta.total:type_name -> google.protobuf.UInt64Value
+	18, // 9: pagination.PaginationResponseMeta.total_pages:type_name -> google.protobuf.UInt32Value
+	18, // 10: pagination.PaginationResponseMeta.current_page:type_name -> google.protobuf.UInt32Value
+	17, // 11: pagination.PaginationResponseMeta.current_offset:type_name -> google.protobuf.UInt64Value
+	17, // 12: pagination.PagingResponse.total:type_name -> google.protobuf.UInt64Value
+	7,  // 13: pagination.PaginationRequest.page_based:type_name -> pagination.PageBasedPagination
+	8,  // 14: pagination.PaginationRequest.offset_based:type_name -> pagination.OffsetBasedPagination
+	9,  // 15: pagination.PaginationRequest.token_based:type_name -> pagination.TokenBasedPagination
+	10, // 16: pagination.PaginationRequest.no_paging:type_name -> pagination.NoPaging
+	4,  // 17: pagination.PaginationRequest.sorting:type_name -> pagination.Sorting
+	6,  // 18: pagination.PaginationRequest.filter_expr:type_name -> pagination.FilterExpr
+	16, // 19: pagination.PaginationRequest.field_mask:type_name -> google.protobuf.FieldMask
+	12, // 20: pagination.PaginationResponse.meta:type_name -> pagination.PaginationResponseMeta
+	19, // 21: pagination.PaginationResponse.data:type_name -> google.protobuf.Any
 	22, // [22:22] is the sub-list for method output_type
 	22, // [22:22] is the sub-list for method input_type
 	22, // [22:22] is the sub-list for extension type_name
@@ -1392,7 +1529,7 @@ func file_pagination_v1_pagination_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pagination_v1_pagination_proto_rawDesc), len(file_pagination_v1_pagination_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      4,
 			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
