@@ -25,50 +25,39 @@ func NewStringlyFilter() *StringlyFilter {
 }
 
 // splitQueryKey 分割查询键
-func splitQueryKey(key string) []string {
+func (sf StringlyFilter) splitQueryKey(key string) []string {
 	return strings.Split(key, QueryDelimiter)
 }
 
 // splitJsonFieldKey 分割JSON字段键
-func splitJsonFieldKey(key string) []string {
+func (sf StringlyFilter) splitJsonFieldKey(key string) []string {
 	return strings.Split(key, JsonFieldDelimiter)
 }
 
 // isJsonFieldKey 是否为JSON字段键
-func isJsonFieldKey(key string) bool {
+func (sf StringlyFilter) isJsonFieldKey(key string) bool {
 	return strings.Contains(key, JsonFieldDelimiter)
 }
 
 // hasOperations 是否有操作
-func hasOperations(str string) bool {
+func (sf StringlyFilter) hasOperations(str string) bool {
 	str = strings.ToLower(str)
-	paginator.ConverterStringToOperator(str)
-	for _, item := range ops {
-		if str == item {
-			return true
-		}
-	}
-	return false
+	return paginator.IsValidOperatorString(str)
 }
 
 // hasDatePart 是否有日期部分
-func hasDatePart(str string) bool {
+func (sf StringlyFilter) hasDatePart(str string) bool {
 	str = strings.ToLower(str)
-	for _, item := range dateParts {
-		if str == item {
-			return true
-		}
-	}
-	return false
+	return paginator.IsValidDatePartString(str)
 }
 
 // BuildFilterSelector 构建过滤选择器
-func BuildFilterSelector(andFilterJsonString, orFilterJsonString string) (error, []func(s *sql.Selector)) {
+func (sf StringlyFilter) BuildFilterSelector(andFilterJsonString, orFilterJsonString string) (error, []func(s *sql.Selector)) {
 	var err error
 	var queryConditions []func(s *sql.Selector)
 
 	var andSelector func(s *sql.Selector)
-	err, andSelector = QueryCommandToWhereConditions(andFilterJsonString, false)
+	err, andSelector = sf.QueryCommandToWhereConditions(andFilterJsonString, false)
 	if err != nil {
 		return err, nil
 	}
@@ -77,7 +66,7 @@ func BuildFilterSelector(andFilterJsonString, orFilterJsonString string) (error,
 	}
 
 	var orSelector func(s *sql.Selector)
-	err, orSelector = QueryCommandToWhereConditions(orFilterJsonString, true)
+	err, orSelector = sf.QueryCommandToWhereConditions(orFilterJsonString, true)
 	if err != nil {
 		return err, nil
 	}
@@ -89,7 +78,7 @@ func BuildFilterSelector(andFilterJsonString, orFilterJsonString string) (error,
 }
 
 // QueryCommandToWhereConditions 查询命令转换为选择条件
-func QueryCommandToWhereConditions(strJson string, isOr bool) (error, func(s *sql.Selector)) {
+func (sf StringlyFilter) QueryCommandToWhereConditions(strJson string, isOr bool) (error, func(s *sql.Selector)) {
 	if len(strJson) == 0 {
 		return nil, nil
 	}
@@ -106,9 +95,9 @@ func QueryCommandToWhereConditions(strJson string, isOr bool) (error, func(s *sq
 
 	return nil, func(s *sql.Selector) {
 		var ps []*sql.Predicate
-		ps = append(ps, processQueryMap(s, queryMap)...)
+		ps = append(ps, sf.processQueryMap(s, queryMap)...)
 		for _, v := range queryMapArray {
-			ps = append(ps, processQueryMap(s, v)...)
+			ps = append(ps, sf.processQueryMap(s, v)...)
 		}
 
 		if isOr {
@@ -120,12 +109,12 @@ func QueryCommandToWhereConditions(strJson string, isOr bool) (error, func(s *sq
 }
 
 // processQueryMap 处理查询映射表
-func processQueryMap(s *sql.Selector, queryMap map[string]string) []*sql.Predicate {
+func (sf StringlyFilter) processQueryMap(s *sql.Selector, queryMap map[string]string) []*sql.Predicate {
 	var ps []*sql.Predicate
 	for k, v := range queryMap {
-		keys := splitQueryKey(k)
+		keys := sf.splitQueryKey(k)
 
-		if cond := makeFieldFilter(s, keys, v); cond != nil {
+		if cond := sf.MakeFieldFilter(s, keys, v); cond != nil {
 			ps = append(ps, cond)
 		}
 	}
@@ -133,8 +122,8 @@ func processQueryMap(s *sql.Selector, queryMap map[string]string) []*sql.Predica
 	return ps
 }
 
-// makeFieldFilter 构建一个字段过滤器
-func makeFieldFilter(s *sql.Selector, keys []string, value string) *sql.Predicate {
+// MakeFieldFilter 构建一个字段过滤器
+func (sf StringlyFilter) MakeFieldFilter(s *sql.Selector, keys []string, value string) *sql.Predicate {
 	if len(keys) == 0 {
 		return nil
 	}
@@ -147,18 +136,20 @@ func makeFieldFilter(s *sql.Selector, keys []string, value string) *sql.Predicat
 		return nil
 	}
 
+	processor := NewProcessor()
+
 	p := sql.P()
 
 	switch len(keys) {
 	case 1:
-		if isJsonFieldKey(field) {
-			jsonFields := splitJsonFieldKey(field)
+		if sf.isJsonFieldKey(field) {
+			jsonFields := sf.splitJsonFieldKey(field)
 			if len(jsonFields) != 2 {
 				field = stringcase.ToSnakeCase(field)
-				return filterEqual(s, p, field, value)
+				return processor.Equal(s, p, field, value)
 			}
 			//value = "'" + value + "'"
-			return filterJsonb(
+			return processor.Jsonb(
 				s, p,
 				stringcase.ToSnakeCase(jsonFields[1]),
 				stringcase.ToSnakeCase(jsonFields[0]),
@@ -166,7 +157,7 @@ func makeFieldFilter(s *sql.Selector, keys []string, value string) *sql.Predicat
 				EQ("", value)
 		}
 		field = stringcase.ToSnakeCase(field)
-		return filterEqual(s, p, field, value)
+		return processor.Equal(s, p, field, value)
 
 	case 2:
 		op := keys[1]
@@ -174,10 +165,10 @@ func makeFieldFilter(s *sql.Selector, keys []string, value string) *sql.Predicat
 			return nil
 		}
 
-		if isJsonFieldKey(field) {
-			jsonFields := splitJsonFieldKey(field)
+		if sf.isJsonFieldKey(field) {
+			jsonFields := sf.splitJsonFieldKey(field)
 			if len(jsonFields) == 2 {
-				field = filterJsonbField(s,
+				field = processor.JsonbField(s,
 					stringcase.ToSnakeCase(jsonFields[1]),
 					stringcase.ToSnakeCase(jsonFields[0]),
 				)
@@ -188,12 +179,12 @@ func makeFieldFilter(s *sql.Selector, keys []string, value string) *sql.Predicat
 		}
 
 		var cond *sql.Predicate
-		if hasOperations(op) {
-			return processOp(s, p, op, field, value)
-		} else if hasDatePart(op) {
-			cond = filterDatePart(s, p, op, field).EQ("", value)
+		if sf.hasOperations(op) {
+			return processor.Process(s, p, paginator.ConverterStringToOperator(op), field, value)
+		} else if sf.hasDatePart(op) {
+			cond = processor.DatePart(s, p, op, field).EQ("", value)
 		} else {
-			cond = filterJsonb(s, p, op, field).EQ("", value)
+			cond = processor.Jsonb(s, p, op, field).EQ("", value)
 		}
 
 		return cond
@@ -212,31 +203,31 @@ func makeFieldFilter(s *sql.Selector, keys []string, value string) *sql.Predicat
 		// 第二个参数，要么是提取日期，要么是json字段。
 
 		//var cond *sql.Predicate
-		if hasDatePart(op1) {
-			if isJsonFieldKey(field) {
-				jsonFields := splitJsonFieldKey(field)
+		if sf.hasDatePart(op1) {
+			if sf.isJsonFieldKey(field) {
+				jsonFields := sf.splitJsonFieldKey(field)
 				if len(jsonFields) == 2 {
-					field = filterJsonbField(s, jsonFields[1], jsonFields[0])
+					field = processor.JsonbField(s, jsonFields[1], jsonFields[0])
 					//value = "'" + value + "'"
 				}
 			} else {
 				field = stringcase.ToSnakeCase(field)
 			}
 
-			str := filterDatePartField(s, op1, field)
+			str := processor.DatePartField(s, op1, field)
 
-			if hasOperations(op2) {
-				return processOp(s, p, op2, str, value)
+			if sf.hasOperations(op2) {
+				return processor.Process(s, p, paginator.ConverterStringToOperator(op2), str, value)
 			}
 
 			return nil
 		} else {
-			str := filterJsonbField(s, op1, field)
+			str := processor.JsonbField(s, op1, field)
 
-			if hasOperations(op2) {
-				return processOp(s, p, op2, str, value)
-			} else if hasDatePart(op2) {
-				return filterDatePart(s, p, op2, str)
+			if sf.hasOperations(op2) {
+				return processor.Process(s, p, paginator.ConverterStringToOperator(op2), str, value)
+			} else if sf.hasDatePart(op2) {
+				return processor.DatePart(s, p, op2, str)
 			}
 			return nil
 		}

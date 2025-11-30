@@ -74,6 +74,12 @@ func ConverterStringToOperator(str string) pagination.Operator {
 	}
 }
 
+// IsValidOperatorString 检查字符串是否为有效的 pagination.Operator 枚举值
+func IsValidOperatorString(str string) bool {
+	op := ConverterStringToOperator(str)
+	return op != pagination.Operator_OPERATOR_UNSPECIFIED
+}
+
 // ConverterStringToDatePart 将字符串转换为 pagination.DatePart 枚举
 func ConverterStringToDatePart(s string) pagination.DatePart {
 	s = strings.ToLower(stringcase.ToSnakeCase(s))
@@ -110,4 +116,10 @@ func ConverterStringToDatePart(s string) pagination.DatePart {
 	default:
 		return pagination.DatePart_DATE_PART_UNSPECIFIED
 	}
+}
+
+// IsValidDatePartString 检查字符串是否为有效的 pagination.DatePart 枚举值
+func IsValidDatePartString(str string) bool {
+	dp := ConverterStringToDatePart(str)
+	return dp != pagination.DatePart_DATE_PART_UNSPECIFIED
 }

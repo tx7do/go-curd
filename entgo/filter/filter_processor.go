@@ -2,94 +2,105 @@ package filter
 
 import (
 	"encoding/json"
-	"fmt"
+	"regexp"
 	"strings"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"github.com/tx7do/go-curd/paginator"
 
 	"github.com/tx7do/go-utils/stringcase"
 
 	pagination "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
 )
 
+// escapeSQLString 对 SQL 字面量做最小转义，双写单引号并转义反斜杠，降低注入风险。
+func escapeSQLString(s string) string {
+	// 先转义反斜杠，再双写单引号
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `'`, `''`)
+	return s
+}
+
+var jsonKeyPattern = regexp.MustCompile(`^[A-Za-z0-9_\.]+$`)
+
 // Processor 过滤处理器接口
 type Processor struct {
 }
 
+func NewProcessor() *Processor {
+	return &Processor{}
+}
+
 // Process 处理过滤条件
 func (poc Processor) Process(s *sql.Selector, p *sql.Predicate, op pagination.Operator, field, value string) *sql.Predicate {
-	var cond *sql.Predicate
-
 	switch op {
 	case pagination.Operator_EQ:
-		return poc.filterEqual(s, p, field, value)
+		return poc.Equal(s, p, field, value)
 	case pagination.Operator_NEQ:
-		return poc.filterNot(s, p, field, value)
+		return poc.NotEqual(s, p, field, value)
 	case pagination.Operator_IN:
-		return poc.filterIn(s, p, field, value)
+		return poc.In(s, p, field, value)
 	case pagination.Operator_NIN:
-		return poc.filterNotIn(s, p, field, value)
+		return poc.NotIn(s, p, field, value)
 	case pagination.Operator_GTE:
-		return poc.filterGTE(s, p, field, value)
+		return poc.GTE(s, p, field, value)
 	case pagination.Operator_GT:
-		return poc.filterGT(s, p, field, value)
+		return poc.GT(s, p, field, value)
 	case pagination.Operator_LTE:
-		return poc.filterLTE(s, p, field, value)
+		return poc.LTE(s, p, field, value)
 	case pagination.Operator_LT:
-		return poc.filterLT(s, p, field, value)
+		return poc.LT(s, p, field, value)
 	case pagination.Operator_BETWEEN:
-		return poc.filterRange(s, p, field, value)
+		return poc.Range(s, p, field, value)
 	case pagination.Operator_IS_NULL:
-		return poc.filterIsNull(s, p, field, value)
+		return poc.IsNull(s, p, field, value)
 	case pagination.Operator_IS_NOT_NULL:
-		return poc.filterIsNotNull(s, p, field, value)
+		return poc.IsNotNull(s, p, field, value)
 	case pagination.Operator_CONTAINS:
-		return poc.filterContains(s, p, field, value)
+		return poc.Contains(s, p, field, value)
 	case pagination.Operator_ICONTAINS:
-		return poc.filterInsensitiveContains(s, p, field, value)
+		return poc.InsensitiveContains(s, p, field, value)
 	case pagination.Operator_STARTS_WITH:
-		return poc.filterStartsWith(s, p, field, value)
+		return poc.StartsWith(s, p, field, value)
 	case pagination.Operator_ISTARTS_WITH:
-		return poc.filterInsensitiveStartsWith(s, p, field, value)
+		return poc.InsensitiveStartsWith(s, p, field, value)
 	case pagination.Operator_ENDS_WITH:
-		return poc.filterEndsWith(s, p, field, value)
+		return poc.EndsWith(s, p, field, value)
 	case pagination.Operator_IENDS_WITH:
-		return poc.filterInsensitiveEndsWith(s, p, field, value)
+		return poc.InsensitiveEndsWith(s, p, field, value)
 	case pagination.Operator_EXACT:
-		return poc.filterExact(s, p, field, value)
+		return poc.Exact(s, p, field, value)
 	case pagination.Operator_IEXACT:
-		return poc.filterInsensitiveExact(s, p, field, value)
+		return poc.InsensitiveExact(s, p, field, value)
 	case pagination.Operator_REGEXP:
-		return poc.filterRegex(s, p, field, value)
+		return poc.Regex(s, p, field, value)
 	case pagination.Operator_IREGEXP:
-		return poc.filterInsensitiveRegex(s, p, field, value)
+		return poc.InsensitiveRegex(s, p, field, value)
 	case pagination.Operator_SEARCH:
-		return poc.filterSearch(s, p, field, value)
+		return poc.Search(s, p, field, value)
 	default:
 		return nil
 	}
-
-	return cond
 }
 
-// filterEqual = 相等操作
+// Equal = 相等操作
 // SQL: WHERE "name" = "tom"
-func (poc Processor) filterEqual(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) Equal(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.EQ(s.C(field), value)
 }
 
-// filterNot NOT 不相等操作
+// NotEqual NOT 不相等操作
 // SQL: WHERE NOT ("name" = "tom")
 // 或者： WHERE "name" <> "tom"
 // 用NOT可以过滤出NULL，而用<>、!=则不能。
-func (poc Processor) filterNot(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) NotEqual(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.Not().EQ(s.C(field), value)
 }
 
-// filterIn IN操作
+// In IN操作
 // SQL: WHERE name IN ("tom", "jimmy")
-func (poc Processor) filterIn(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) In(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	var values []any
 	if err := json.Unmarshal([]byte(value), &values); err == nil {
 		return p.In(s.C(field), values...)
@@ -97,9 +108,9 @@ func (poc Processor) filterIn(s *sql.Selector, p *sql.Predicate, field, value st
 	return nil
 }
 
-// filterNotIn NOT IN操作
+// NotIn NOT IN操作
 // SQL: WHERE name NOT IN ("tom", "jimmy")`
-func (poc Processor) filterNotIn(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) NotIn(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	var values []any
 	if err := json.Unmarshal([]byte(value), &values); err == nil {
 		return p.NotIn(s.C(field), values...)
@@ -107,34 +118,34 @@ func (poc Processor) filterNotIn(s *sql.Selector, p *sql.Predicate, field, value
 	return nil
 }
 
-// filterGTE GTE (Greater Than or Equal) 大于等于 >=操作
+// GTE GTE (Greater Than or Equal) 大于等于 >=操作
 // SQL: WHERE "create_time" >= "2023-10-25"
-func (poc Processor) filterGTE(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) GTE(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.GTE(s.C(field), value)
 }
 
-// filterGT GT (Greater than) 大于 >操作
+// GT GT (Greater than) 大于 >操作
 // SQL: WHERE "create_time" > "2023-10-25"
-func (poc Processor) filterGT(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) GT(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.GT(s.C(field), value)
 }
 
-// filterLTE LTE (Less Than or Equal) 小于等于 <=操作
+// LTE LTE (Less Than or Equal) 小于等于 <=操作
 // SQL: WHERE "create_time" <= "2023-10-25"
-func (poc Processor) filterLTE(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) LTE(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.LTE(s.C(field), value)
 }
 
-// filterLT LT (Less than) 小于 <操作
+// LT LT (Less than) 小于 <操作
 // SQL: WHERE "create_time" < "2023-10-25"
-func (poc Processor) filterLT(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) LT(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.LT(s.C(field), value)
 }
 
-// filterRange 在值域之中 BETWEEN操作
+// Range 在值域之中 BETWEEN操作
 // SQL: WHERE "create_time" BETWEEN "2023-10-25" AND "2024-10-25"
 // 或者： WHERE "create_time" >= "2023-10-25" AND "create_time" <= "2024-10-25"
-func (poc Processor) filterRange(s *sql.Selector, _ *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) Range(s *sql.Selector, _ *sql.Predicate, field, value string) *sql.Predicate {
 	var values []any
 	if err := json.Unmarshal([]byte(value), &values); err == nil {
 		if len(values) != 2 {
@@ -150,72 +161,72 @@ func (poc Processor) filterRange(s *sql.Selector, _ *sql.Predicate, field, value
 	return nil
 }
 
-// filterIsNull 为空 IS NULL操作
+// IsNull 为空 IS NULL操作
 // SQL: WHERE name IS NULL
-func (poc Processor) filterIsNull(s *sql.Selector, p *sql.Predicate, field, _ string) *sql.Predicate {
+func (poc Processor) IsNull(s *sql.Selector, p *sql.Predicate, field, _ string) *sql.Predicate {
 	return p.IsNull(s.C(field))
 }
 
-// filterIsNotNull 不为空 IS NOT NULL操作
+// IsNotNull 不为空 IS NOT NULL操作
 // SQL: WHERE name IS NOT NULL
-func (poc Processor) filterIsNotNull(s *sql.Selector, p *sql.Predicate, field, _ string) *sql.Predicate {
+func (poc Processor) IsNotNull(s *sql.Selector, p *sql.Predicate, field, _ string) *sql.Predicate {
 	return p.Not().IsNull(s.C(field))
 }
 
-// filterContains LIKE 前后模糊查询
+// Contains LIKE 前后模糊查询
 // SQL: WHERE name LIKE '%L%';
-func (poc Processor) filterContains(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) Contains(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.Contains(s.C(field), value)
 }
 
-// filterInsensitiveContains ILIKE 前后模糊查询
+// InsensitiveContains ILIKE 前后模糊查询
 // SQL: WHERE name ILIKE '%L%';
-func (poc Processor) filterInsensitiveContains(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) InsensitiveContains(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.ContainsFold(s.C(field), value)
 }
 
-// filterStartsWith LIKE 前缀+模糊查询
+// StartsWith LIKE 前缀+模糊查询
 // SQL: WHERE name LIKE 'La%';
-func (poc Processor) filterStartsWith(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) StartsWith(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.HasPrefix(s.C(field), value)
 }
 
-// filterInsensitiveStartsWith ILIKE 前缀+模糊查询
+// InsensitiveStartsWith ILIKE 前缀+模糊查询
 // SQL: WHERE name ILIKE 'La%';
-func (poc Processor) filterInsensitiveStartsWith(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) InsensitiveStartsWith(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.EqualFold(s.C(field), value+"%")
 }
 
-// filterEndsWith LIKE 后缀+模糊查询
+// EndsWith LIKE 后缀+模糊查询
 // SQL: WHERE name LIKE '%a';
-func (poc Processor) filterEndsWith(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) EndsWith(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.HasSuffix(s.C(field), value)
 }
 
-// filterInsensitiveEndsWith ILIKE 后缀+模糊查询
+// InsensitiveEndsWith ILIKE 后缀+模糊查询
 // SQL: WHERE name ILIKE '%a';
-func (poc Processor) filterInsensitiveEndsWith(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) InsensitiveEndsWith(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.EqualFold(s.C(field), "%"+value)
 }
 
-// filterExact LIKE 操作 精确比对
+// Exact LIKE 操作 精确比对
 // SQL: WHERE name LIKE 'a';
-func (poc Processor) filterExact(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) Exact(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.Like(s.C(field), value)
 }
 
-// filterInsensitiveExact ILIKE 操作 不区分大小写，精确比对
+// InsensitiveExact ILIKE 操作 不区分大小写，精确比对
 // SQL: WHERE name ILIKE 'a';
-func (poc Processor) filterInsensitiveExact(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) InsensitiveExact(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	return p.EqualFold(s.C(field), value)
 }
 
-// filterRegex 正则查找
+// Regex 正则查找
 // MySQL: WHERE title REGEXP BINARY '^(An?|The) +'
 // Oracle: WHERE REGEXP_LIKE(title, '^(An?|The) +', 'c');
 // PostgreSQL: WHERE title ~ '^(An?|The) +';
 // SQLite: WHERE title REGEXP '^(An?|The) +';
-func (poc Processor) filterRegex(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) Regex(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	p.Append(func(b *sql.Builder) {
 		switch s.Builder.Dialect() {
 		case dialect.Postgres:
@@ -240,12 +251,12 @@ func (poc Processor) filterRegex(s *sql.Selector, p *sql.Predicate, field, value
 	return p
 }
 
-// filterInsensitiveRegex 正则查找 不区分大小写
+// InsensitiveRegex 正则查找 不区分大小写
 // MySQL: WHERE title REGEXP '^(an?|the) +'
 // Oracle: WHERE REGEXP_LIKE(title, '^(an?|the) +', 'i');
 // PostgreSQL: WHERE title ~* '^(an?|the) +';
 // SQLite: WHERE title REGEXP '(?i)^(an?|the) +';
-func (poc Processor) filterInsensitiveRegex(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+func (poc Processor) InsensitiveRegex(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
 	p.Append(func(b *sql.Builder) {
 		switch s.Builder.Dialect() {
 		case dialect.Postgres:
@@ -273,94 +284,228 @@ func (poc Processor) filterInsensitiveRegex(s *sql.Selector, p *sql.Predicate, f
 	return p
 }
 
-// filterSearch 全文搜索
+// Search 全文搜索
 // SQL:
-func (poc Processor) filterSearch(s *sql.Selector, p *sql.Predicate, _, _ string) *sql.Predicate {
-	p.Append(func(b *sql.Builder) {
-		switch s.Builder.Dialect() {
+func (poc Processor) Search(s *sql.Selector, p *sql.Predicate, field, value string) *sql.Predicate {
+	if strings.TrimSpace(value) == "" {
+		return p
+	}
 
-		}
-	})
-	return p
-}
-
-// filterDatePart 时间戳提取日期
-// SQL: select extract(quarter from timestamp '2018-08-15 12:10:10');
-func (poc Processor) filterDatePart(s *sql.Selector, p *sql.Predicate, datePart, field string) *sql.Predicate {
 	p.Append(func(b *sql.Builder) {
 		switch s.Builder.Dialect() {
 		case dialect.Postgres:
-			str := fmt.Sprintf("EXTRACT('%s' FROM %s)", strings.ToUpper(datePart), s.C(field))
-			b.WriteString(str)
-			//b.Arg(strings.ToLower(value))
-			break
+			// 使用全文搜索： to_tsvector(column) @@ plainto_tsquery(?)
+			b.WriteString("to_tsvector(")
+			b.Ident(s.C(field))
+			b.WriteString(") @@ plainto_tsquery(")
+			b.Arg(value)
+			b.WriteString(")")
 
 		case dialect.MySQL:
-			str := fmt.Sprintf("%s(%s)", strings.ToUpper(datePart), s.C(field))
-			b.WriteString(str)
-			//b.Arg(strings.ToLower(value))
-			break
+			// MySQL 全文搜索（需建全文索引）： MATCH(col) AGAINST(? IN NATURAL LANGUAGE MODE)
+			b.WriteString("MATCH(")
+			b.Ident(s.C(field))
+			b.WriteString(") AGAINST(")
+			b.Arg(value)
+			b.WriteString(" IN NATURAL LANGUAGE MODE)")
+
+		case dialect.SQLite:
+			// SQLite 没有统一全文函数时使用 LIKE
+			b.Ident(s.C(field))
+			b.WriteString(" LIKE ")
+			b.Arg("%" + value + "%")
+
+		default:
+			// fallback 使用通用的 LIKE 匹配
+			b.Ident(s.C(field))
+			b.WriteString(" LIKE ")
+			b.Arg("%" + value + "%")
 		}
 	})
+
 	return p
 }
 
-// filterDatePartField 日期
-func (poc Processor) filterDatePartField(s *sql.Selector, datePart, field string) string {
+// DatePart 时间戳提取日期
+// SQL: select extract(quarter from timestamp '2018-08-15 12:10:10');
+func (poc Processor) DatePart(s *sql.Selector, p *sql.Predicate, datePart, field string) *sql.Predicate {
+	if !paginator.IsValidDatePartString(datePart) {
+		// 非法的 datePart，不生成表达式以避免注入
+		return p
+	}
+
+	datePartUpper := strings.ToUpper(datePart)
+
+	p.Append(func(b *sql.Builder) {
+		switch s.Builder.Dialect() {
+		case dialect.Postgres:
+			// EXTRACT('PART' FROM column)
+			b.WriteString("EXTRACT('")
+			b.WriteString(datePartUpper)
+			b.WriteString("' FROM ")
+			b.Ident(s.C(field))
+			b.WriteString(")")
+
+		case dialect.MySQL:
+			// PART(column)
+			b.WriteString(datePartUpper)
+			b.WriteString("(")
+			b.Ident(s.C(field))
+			b.WriteString(")")
+
+		default:
+			// fallback to Postgres style
+			b.WriteString("EXTRACT('")
+			b.WriteString(datePartUpper)
+			b.WriteString("' FROM ")
+			b.Ident(s.C(field))
+			b.WriteString(")")
+		}
+	})
+
+	return p
+}
+
+// DatePartField 日期
+func (poc Processor) DatePartField(s *sql.Selector, datePart, field string) string {
+	if !paginator.IsValidDatePartString(datePart) {
+		// 非法的 datePart，不生成表达式以避免注入
+		return ""
+	}
+
+	datePart = strings.ToUpper(datePart)
+
 	p := sql.P()
+
 	switch s.Builder.Dialect() {
 	case dialect.Postgres:
-		str := fmt.Sprintf("EXTRACT('%s' FROM %s)", strings.ToUpper(datePart), s.C(field))
-		p.WriteString(str)
-		break
+		// EXTRACT('PART' FROM column)
+		p.WriteString("EXTRACT(")
+		p.WriteString("'" + datePart + "'")
+		p.WriteString(" FROM ")
+		p.Ident(s.C(field))
+		p.WriteString(")")
 
 	case dialect.MySQL:
-		str := fmt.Sprintf("%s(%s)", strings.ToUpper(datePart), s.C(field))
-		p.WriteString(str)
-		break
+		// PART(column)
+		p.WriteString(datePart)
+		p.WriteString("(")
+		p.Ident(s.C(field))
+		p.WriteString(")")
+
+	default:
+		// fallback to Postgres style
+		p.WriteString("EXTRACT(")
+		p.WriteString("'" + datePart + "'")
+		p.WriteString(" FROM ")
+		p.Ident(s.C(field))
+		p.WriteString(")")
 	}
 
 	return p.String()
 }
 
-// filterJsonb 提取JSONB字段
+// Jsonb 提取JSONB字段
 // Postgresql: WHERE ("app_profile"."preferences" ->> 'daily_email') = 'true'
-func (poc Processor) filterJsonb(s *sql.Selector, p *sql.Predicate, jsonbField, field string) *sql.Predicate {
+// Mysql: WHERE JSON_EXTRACT(`preferences`, '$.daily_email') = 'true'
+func (poc Processor) Jsonb(s *sql.Selector, p *sql.Predicate, jsonbField, field string) *sql.Predicate {
 	field = stringcase.ToSnakeCase(field)
+	jsonbField = strings.TrimSpace(jsonbField)
+	if jsonbField == "" {
+		return p
+	}
+
+	// 校验 key 合法性，防止构造出非法路径或注入
+	if !jsonKeyPattern.MatchString(jsonbField) {
+		return p
+	}
 
 	p.Append(func(b *sql.Builder) {
 		switch s.Builder.Dialect() {
 		case dialect.Postgres:
-			b.Ident(s.C(field)).WriteString(" ->> ").WriteString("'" + jsonbField + "'")
-			//b.Arg(strings.ToLower(value))
-			break
+			b.Ident(s.C(field)).WriteString(" ->> ").
+				WriteString("'" + jsonbField + "'")
 
 		case dialect.MySQL:
-			str := fmt.Sprintf("JSON_EXTRACT(%s, '$.%s')", s.C(field), jsonbField)
-			b.WriteString(str)
-			//b.Arg(strings.ToLower(value))
-			break
+			path := "'$." + jsonbField + "'"
+			b.WriteString("JSON_EXTRACT(")
+			b.Ident(s.C(field))
+			b.WriteString(", ")
+			b.WriteString(path)
+			b.WriteString(")")
+
+		default:
+			// fallback to Postgres style parameterized literal
+			b.Ident(s.C(field)).WriteString(" ->> ").
+				WriteString("'" + jsonbField + "'")
 		}
 	})
+
 	return p
 }
 
-// filterJsonbField JSONB字段
-func (poc Processor) filterJsonbField(s *sql.Selector, jsonbField, field string) string {
+// JsonbFieldExpr 返回一个带参数化占位的表达式（*sql.Predicate），
+// 当需要在 SELECT/ORDER/其它构造表达式时使用，避免返回拼接好的原始字符串。
+func (poc Processor) JsonbFieldExpr(s *sql.Selector, jsonbField, field string) *sql.Predicate {
 	field = stringcase.ToSnakeCase(field)
 
 	p := sql.P()
+
+	// 校验后再构造 path，最终仍通过 b.Arg 绑定参数，防止注入
+	if !jsonKeyPattern.MatchString(jsonbField) {
+		return p
+	}
+
+	p.Append(func(b *sql.Builder) {
+		switch s.Builder.Dialect() {
+		case dialect.Postgres:
+			b.Ident(s.C(field)).WriteString(" ->> ").
+				WriteString("'" + jsonbField + "'")
+
+		case dialect.MySQL:
+			path := "'$." + jsonbField + "'"
+			b.WriteString("JSON_EXTRACT(")
+			b.Ident(s.C(field))
+			b.WriteString(", ")
+			b.WriteString(path)
+			b.WriteString(")")
+
+		default:
+			b.Ident(s.C(field)).WriteString(" ->> ").
+				WriteString("'" + jsonbField + "'")
+		}
+	})
+
+	return p
+}
+
+// JsonbField JSONB字段
+func (poc Processor) JsonbField(s *sql.Selector, jsonbField, field string) string {
+	field = stringcase.ToSnakeCase(field)
+
+	p := sql.P()
+
+	// 校验后再构造 path，最终仍通过 b.Arg 绑定参数，防止注入
+	if !jsonKeyPattern.MatchString(jsonbField) {
+		return ""
+	}
+
 	switch s.Builder.Dialect() {
 	case dialect.Postgres:
-		p.Ident(s.C(field)).WriteString(" ->> ").WriteString("'" + jsonbField + "'")
-		//b.Arg(strings.ToLower(value))
-		break
+		p.Ident(s.C(field)).WriteString(" ->> ").
+			WriteString("'" + jsonbField + "'")
 
 	case dialect.MySQL:
-		str := fmt.Sprintf("JSON_EXTRACT(%s, '$.%s')", s.C(field), jsonbField)
-		p.WriteString(str)
-		//b.Arg(strings.ToLower(value))
-		break
+		path := "'$." + jsonbField + "'"
+		p.WriteString("JSON_EXTRACT(")
+		p.Ident(s.C(field))
+		p.WriteString(", ")
+		p.WriteString(path)
+		p.WriteString(")")
+
+	default:
+		p.Ident(s.C(field)).WriteString(" ->> ").
+			WriteString("'" + jsonbField + "'")
 	}
 
 	return p.String()
