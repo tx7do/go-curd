@@ -6,28 +6,33 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/kratos/v2/log"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/tx7do/go-utils/mapper"
 
-	pagination "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
+	paginationV1 "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
 	"github.com/tx7do/go-curd/entgo/field"
 	"github.com/tx7do/go-curd/entgo/filter"
 	paging "github.com/tx7do/go-curd/entgo/pagination"
 	"github.com/tx7do/go-curd/entgo/sorting"
 )
 
-type QueryBuilder[ENTQ any, ENTITY any] interface {
-	Modify(modifiers ...func(s *sql.Selector)) QueryBuilder[ENTQ, ENTITY]
+type QueryBuilder[ENTQ any, ENTS any, ENTITY any] interface {
+	Modify(modifiers ...func(s *sql.Selector)) QueryBuilder[ENTQ, ENTS, ENTITY]
 
-	Clone() QueryBuilder[ENTQ, ENTITY]
+	Clone() QueryBuilder[ENTQ, ENTS, ENTITY]
 
 	All(ctx context.Context) ([]*ENTITY, error)
 
+	Only(ctx context.Context) (*ENTITY, error)
+
 	Count(ctx context.Context) (int, error)
+
+	Select(fields ...string) *ENTS
 }
 
 // Querier Ent查询器
-type Querier[ENTQ any, DTO any, ENTITY any] struct {
+type Querier[ENTQ any, ENTS any, DTO any, ENTITY any] struct {
 	mapper *mapper.CopierMapper[DTO, ENTITY]
 
 	queryStringSorting *sorting.QueryStringSorting
@@ -43,8 +48,8 @@ type Querier[ENTQ any, DTO any, ENTITY any] struct {
 	fieldSelector *field.Selector
 }
 
-func NewQuerier[ENTQ any, DTO any, ENTITY any](mapper *mapper.CopierMapper[DTO, ENTITY]) *Querier[ENTQ, DTO, ENTITY] {
-	return &Querier[ENTQ, DTO, ENTITY]{
+func NewQuerier[ENTQ any, ENTS any, DTO any, ENTITY any](mapper *mapper.CopierMapper[DTO, ENTITY]) *Querier[ENTQ, ENTS, DTO, ENTITY] {
+	return &Querier[ENTQ, ENTS, DTO, ENTITY]{
 		mapper: mapper,
 
 		queryStringSorting: sorting.NewQueryStringSorting(),
@@ -68,7 +73,7 @@ type PagingResult[E any] struct {
 }
 
 // Count 计算符合条件的记录数
-func (q *Querier[ENTQ, DTO, ENTITY]) Count(ctx context.Context, builder QueryBuilder[ENTQ, ENTITY], whereCond []func(s *sql.Selector)) (int, error) {
+func (q *Querier[ENTQ, ENTS, DTO, ENTITY]) Count(ctx context.Context, builder QueryBuilder[ENTQ, ENTS, ENTITY], whereCond []func(s *sql.Selector)) (int, error) {
 	if builder == nil {
 		return 0, errors.New("query builder is nil")
 	}
@@ -87,7 +92,7 @@ func (q *Querier[ENTQ, DTO, ENTITY]) Count(ctx context.Context, builder QueryBui
 }
 
 // ListWithPaging 使用分页请求查询列表
-func (q *Querier[ENTQ, DTO, ENTITY]) ListWithPaging(ctx context.Context, builder QueryBuilder[ENTQ, ENTITY], req *pagination.PagingRequest) (*PagingResult[DTO], error) {
+func (q *Querier[ENTQ, ENTS, DTO, ENTITY]) ListWithPaging(ctx context.Context, builder QueryBuilder[ENTQ, ENTS, ENTITY], req *paginationV1.PagingRequest) (*PagingResult[DTO], error) {
 	if req == nil {
 		return nil, errors.New("paging request is nil")
 	}
@@ -146,7 +151,7 @@ func (q *Querier[ENTQ, DTO, ENTITY]) ListWithPaging(ctx context.Context, builder
 		querySelectors = append(querySelectors, sortingSelector)
 	}
 
-	// pagination
+	// paginationV1
 	if !req.GetNoPaging() {
 		if req.Page != nil && req.PageSize != nil {
 			pagingSelector = q.pagePaginator.BuildSelector(int(req.GetPage()), int(req.GetPageSize()))
@@ -191,9 +196,9 @@ func (q *Querier[ENTQ, DTO, ENTITY]) ListWithPaging(ctx context.Context, builder
 }
 
 // ListWithPagination 使用通用的分页请求参数进行列表查询
-func (q *Querier[ENTQ, DTO, ENTITY]) ListWithPagination(ctx context.Context, builder QueryBuilder[ENTQ, ENTITY], req *pagination.PaginationRequest) (*PagingResult[DTO], error) {
+func (q *Querier[ENTQ, ENTS, DTO, ENTITY]) ListWithPagination(ctx context.Context, builder QueryBuilder[ENTQ, ENTS, ENTITY], req *paginationV1.PaginationRequest) (*PagingResult[DTO], error) {
 	if req == nil {
-		return nil, errors.New("pagination request is nil")
+		return nil, errors.New("paginationV1 request is nil")
 	}
 
 	if builder == nil {
@@ -250,13 +255,13 @@ func (q *Querier[ENTQ, DTO, ENTITY]) ListWithPagination(ctx context.Context, bui
 		querySelectors = append(querySelectors, sortingSelector)
 	}
 
-	// pagination
+	// paginationV1
 	switch req.GetPaginationType().(type) {
-	case *pagination.PaginationRequest_OffsetBased:
+	case *paginationV1.PaginationRequest_OffsetBased:
 		pagingSelector = q.offsetPaginator.BuildSelector(int(req.GetOffsetBased().GetOffset()), int(req.GetOffsetBased().GetLimit()))
-	case *pagination.PaginationRequest_PageBased:
+	case *paginationV1.PaginationRequest_PageBased:
 		pagingSelector = q.pagePaginator.BuildSelector(int(req.GetPageBased().GetPage()), int(req.GetPageBased().GetPageSize()))
-	case *pagination.PaginationRequest_TokenBased:
+	case *paginationV1.PaginationRequest_TokenBased:
 		pagingSelector = q.tokenPaginator.BuildSelector(req.GetTokenBased().GetToken(), int(req.GetTokenBased().GetPageSize()))
 	}
 	if pagingSelector != nil {
@@ -291,4 +296,29 @@ func (q *Querier[ENTQ, DTO, ENTITY]) ListWithPagination(ctx context.Context, bui
 	}
 
 	return res, nil
+}
+
+// Get 根据查询条件获取单条记录
+func (q *Querier[ENTQ, ENTS, DTO, ENTITY]) Get(ctx context.Context, builder QueryBuilder[ENTQ, ENTS, ENTITY], viewMask *fieldmaskpb.FieldMask) (*DTO, error) {
+	if builder == nil {
+		return nil, errors.New("query builder is nil")
+	}
+
+	field.NormalizeFieldMaskPaths(viewMask)
+
+	if viewMask != nil && len(viewMask.Paths) == 0 {
+		builder.Select(viewMask.GetPaths()...)
+	}
+
+	entity, err := builder.Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return q.mapper.ToDTO(entity), nil
+}
+
+// Only 根据查询条件获取单条记录
+func (q *Querier[ENTQ, ENTS, DTO, ENTITY]) Only(ctx context.Context, builder QueryBuilder[ENTQ, ENTS, ENTITY], viewMask *fieldmaskpb.FieldMask) (*DTO, error) {
+	return q.Get(ctx, builder, viewMask)
 }
