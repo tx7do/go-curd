@@ -7,6 +7,7 @@ import (
 
 	"github.com/tx7do/go-utils/fieldmaskutil"
 	"github.com/tx7do/go-utils/mapper"
+	"github.com/tx7do/go-utils/trans"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -22,11 +23,11 @@ type UpdateBuilder[ENTITY any] interface {
 	SaveX(ctx context.Context) *ENTITY
 }
 
-type Updater[DTO *proto.Message, ENTITY any] struct {
+type Updater[DTO proto.Message, ENTITY any] struct {
 	mapper *mapper.CopierMapper[DTO, ENTITY]
 }
 
-func NewUpdater[DTO *proto.Message, ENTITY any](mapper *mapper.CopierMapper[DTO, ENTITY]) *Updater[DTO, ENTITY] {
+func NewUpdater[DTO proto.Message, ENTITY any](mapper *mapper.CopierMapper[DTO, ENTITY]) *Updater[DTO, ENTITY] {
 	return &Updater[DTO, ENTITY]{
 		mapper: mapper,
 	}
@@ -40,7 +41,7 @@ func (up *Updater[DTO, ENTITY]) Update(
 	updateMask *fieldmaskpb.FieldMask,
 	doUpdateFieldFunc func(builder UpdateBuilder[ENTITY], dto *DTO),
 ) (*DTO, error) {
-	if err := fieldmaskutil.FilterByFieldMask(*dto, updateMask); err != nil {
+	if err := fieldmaskutil.FilterByFieldMask(trans.Ptr(proto.Message(*dto)), updateMask); err != nil {
 		log.Errorf("invalid field mask [%v], error: %s", updateMask, err.Error())
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func (up *Updater[DTO, ENTITY]) UpdateX(
 	updateMask *fieldmaskpb.FieldMask,
 	doUpdateFieldFunc func(builder UpdateBuilder[ENTITY], dto *DTO),
 ) error {
-	if err := fieldmaskutil.FilterByFieldMask(*dto, updateMask); err != nil {
+	if err := fieldmaskutil.FilterByFieldMask(trans.Ptr(proto.Message(*dto)), updateMask); err != nil {
 		log.Errorf("invalid field mask [%v], error: %s", updateMask, err.Error())
 		return err
 	}

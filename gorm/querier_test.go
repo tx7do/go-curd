@@ -22,12 +22,6 @@ type testUserEntity struct {
 	Age  int
 }
 
-type testUserDTO struct {
-	ID   uint
-	Name string
-	Age  int
-}
-
 func openTestDBForQuerier(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
@@ -61,8 +55,8 @@ func TestQuerier_Count_List_Get(t *testing.T) {
 	)
 
 	// 使用零值 CopierMapper（如果项目有构造函数可替换）
-	m := &mapper.CopierMapper[testUserDTO, testUserEntity]{}
-	q := NewQuerier[testUserDTO, testUserEntity](m)
+	m := &mapper.CopierMapper[User, testUserEntity]{}
+	q := NewQuerier[User, testUserEntity](m)
 
 	// Count: 无 selectors -> 返回全部数量
 	cnt, err := q.Count(ctx, db, nil)
@@ -118,8 +112,8 @@ func TestQuerier_ListWithPagination_Various(t *testing.T) {
 		testUserEntity{Name: "carol", Age: 40},
 	)
 
-	m := &mapper.CopierMapper[testUserDTO, testUserEntity]{}
-	q := NewQuerier[testUserDTO, testUserEntity](m)
+	m := &mapper.CopierMapper[User, testUserEntity]{}
+	q := NewQuerier[User, testUserEntity](m)
 
 	cases := []struct {
 		name string
