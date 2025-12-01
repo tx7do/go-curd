@@ -3,7 +3,6 @@ module github.com/tx7do/go-curd/gorm
 go 1.25.3
 
 require (
-	entgo.io/ent v0.14.5
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-kratos/kratos/v2 v2.9.1
 	gorm.io/driver/clickhouse v0.7.0
@@ -53,7 +52,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
-	github.com/tx7do/go-curd v0.0.0-20251201084858-10640fc1d92d
+	github.com/tx7do/go-curd v0.0.1
 	github.com/tx7do/go-utils v1.1.31 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect

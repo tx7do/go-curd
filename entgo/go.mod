@@ -7,7 +7,7 @@ require (
 	github.com/XSAM/otelsql v0.40.0
 	github.com/go-kratos/kratos/v2 v2.9.1
 	github.com/stretchr/testify v1.11.1
-	github.com/tx7do/go-curd v0.0.0-20251201064017-8d155eeb6045
+	github.com/tx7do/go-curd v0.0.1
 	github.com/tx7do/go-utils v1.1.31
 	github.com/tx7do/go-utils/mapper v0.0.3
 	go.opentelemetry.io/otel v1.38.0
