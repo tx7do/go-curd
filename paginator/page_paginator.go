@@ -1,5 +1,8 @@
 package paginator
 
+var DefaultPage = 1
+var DefaultPageSize = 10
+
 type pagePaginator struct {
 	page  int
 	size  int
@@ -8,12 +11,22 @@ type pagePaginator struct {
 
 func NewPagePaginator(page, size int) Paginator {
 	if page < 1 {
-		page = 1
+		page = DefaultPage
 	}
 	if size < 1 {
-		size = 10
+		size = DefaultPageSize
 	}
-	return &pagePaginator{page: page, size: size}
+	return &pagePaginator{
+		page: page,
+		size: size,
+	}
+}
+
+func NewPagePaginatorWithDefault() Paginator {
+	return &pagePaginator{
+		page: DefaultPage,
+		size: DefaultPageSize,
+	}
 }
 
 func (p *pagePaginator) Mode() PaginateMode { return ModePage }
@@ -35,12 +48,12 @@ func (p *pagePaginator) Size() int {
 func (p *pagePaginator) Offset() int { return (p.Page() - 1) * p.Size() }
 func (p *pagePaginator) Limit() int  { return p.Size() }
 
-func (p *pagePaginator) Token() string             { return "" }
-func (p *pagePaginator) NextToken() string         { return "" }
-func (p *pagePaginator) PrevToken() string         { return "" }
-func (p *pagePaginator) SetToken(token string)     {}
-func (p *pagePaginator) SetNextToken(token string) {}
-func (p *pagePaginator) SetPrevToken(token string) {}
+func (p *pagePaginator) Token() string       { return "" }
+func (p *pagePaginator) NextToken() string   { return "" }
+func (p *pagePaginator) PrevToken() string   { return "" }
+func (p *pagePaginator) SetToken(string)     {}
+func (p *pagePaginator) SetNextToken(string) {}
+func (p *pagePaginator) SetPrevToken(string) {}
 
 func (p *pagePaginator) Total() int64 {
 	if p.total < 0 {
@@ -92,5 +105,5 @@ func (p *pagePaginator) WithOffset(offset int) Paginator {
 	p.page = offset/p.Size() + 1
 	return p
 }
-func (p *pagePaginator) WithLimit(limit int) Paginator    { return p.WithSize(limit) }
-func (p *pagePaginator) WithToken(token string) Paginator { return p }
+func (p *pagePaginator) WithLimit(limit int) Paginator { return p.WithSize(limit) }
+func (p *pagePaginator) WithToken(string) Paginator    { return p }

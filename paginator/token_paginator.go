@@ -10,9 +10,18 @@ type tokenPaginator struct {
 
 func NewTokenPaginator(token string, limit int) Paginator {
 	if limit < 1 {
-		limit = 10
+		limit = DefaultLimit
 	}
-	return &tokenPaginator{token: token, limit: limit}
+	return &tokenPaginator{
+		token: token,
+		limit: limit,
+	}
+}
+
+func NewTokenPaginatorWithDefault() Paginator {
+	return &tokenPaginator{
+		limit: DefaultLimit,
+	}
 }
 
 func (p *tokenPaginator) Mode() PaginateMode { return ModeToken }
@@ -67,7 +76,7 @@ func (p *tokenPaginator) TotalPages() int {
 func (p *tokenPaginator) HasNext() bool { return p.nextToken != "" }
 func (p *tokenPaginator) HasPrev() bool { return p.prevToken != "" }
 
-func (p *tokenPaginator) WithPage(page int) Paginator { return p } // token 模式下无效
+func (p *tokenPaginator) WithPage(int) Paginator { return p } // token 模式下无效
 func (p *tokenPaginator) WithSize(size int) Paginator {
 	if size < 1 {
 		size = 1
@@ -75,8 +84,8 @@ func (p *tokenPaginator) WithSize(size int) Paginator {
 	p.limit = size
 	return p
 }
-func (p *tokenPaginator) WithOffset(offset int) Paginator { return p } // token 模式下无效
-func (p *tokenPaginator) WithLimit(limit int) Paginator   { return p.WithSize(limit) }
+func (p *tokenPaginator) WithOffset(int) Paginator      { return p } // token 模式下无效
+func (p *tokenPaginator) WithLimit(limit int) Paginator { return p.WithSize(limit) }
 func (p *tokenPaginator) WithToken(token string) Paginator {
 	p.token = token
 	return p

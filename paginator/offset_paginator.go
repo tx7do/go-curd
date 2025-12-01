@@ -1,5 +1,8 @@
 package paginator
 
+var DefaultLimit = 10
+var DefaultOffset = 0
+
 type offsetPaginator struct {
 	offset int
 	limit  int
@@ -8,12 +11,22 @@ type offsetPaginator struct {
 
 func NewOffsetPaginator(offset, limit int) Paginator {
 	if offset < 0 {
-		offset = 0
+		offset = DefaultOffset
 	}
 	if limit < 1 {
-		limit = 10
+		limit = DefaultLimit
 	}
-	return &offsetPaginator{offset: offset, limit: limit}
+	return &offsetPaginator{
+		offset: offset,
+		limit:  limit,
+	}
+}
+
+func NewOffsetPaginatorWithDefault() Paginator {
+	return &offsetPaginator{
+		offset: DefaultOffset,
+		limit:  DefaultLimit,
+	}
 }
 
 func (p *offsetPaginator) Mode() PaginateMode { return ModeOffset }
@@ -40,12 +53,12 @@ func (p *offsetPaginator) Limit() int {
 	return p.limit
 }
 
-func (p *offsetPaginator) Token() string             { return "" }
-func (p *offsetPaginator) NextToken() string         { return "" }
-func (p *offsetPaginator) PrevToken() string         { return "" }
-func (p *offsetPaginator) SetToken(token string)     {}
-func (p *offsetPaginator) SetNextToken(token string) {}
-func (p *offsetPaginator) SetPrevToken(token string) {}
+func (p *offsetPaginator) Token() string       { return "" }
+func (p *offsetPaginator) NextToken() string   { return "" }
+func (p *offsetPaginator) PrevToken() string   { return "" }
+func (p *offsetPaginator) SetToken(string)     {}
+func (p *offsetPaginator) SetNextToken(string) {}
+func (p *offsetPaginator) SetPrevToken(string) {}
 
 func (p *offsetPaginator) Total() int64 {
 	if p.total < 0 {
@@ -99,4 +112,4 @@ func (p *offsetPaginator) WithLimit(limit int) Paginator {
 	p.limit = limit
 	return p
 }
-func (p *offsetPaginator) WithToken(token string) Paginator { return p }
+func (p *offsetPaginator) WithToken(string) Paginator { return p }

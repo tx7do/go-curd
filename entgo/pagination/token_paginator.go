@@ -1,0 +1,62 @@
+package pagination
+
+import (
+	"encoding/base64"
+
+	"entgo.io/ent/dialect/sql"
+
+	"github.com/go-kratos/kratos/v2/encoding"
+	_ "github.com/go-kratos/kratos/v2/encoding/json"
+
+	"github.com/tx7do/go-curd/paginator"
+)
+
+// TokenPaginator 基于 Token 的分页器
+type TokenPaginator struct {
+	impl  paginator.Paginator
+	codec encoding.Codec
+}
+
+func NewTokenPaginator() *TokenPaginator {
+	return &TokenPaginator{
+		impl:  paginator.NewTokenPaginatorWithDefault(),
+		codec: encoding.GetCodec("json"),
+	}
+}
+
+func (p *TokenPaginator) BuildSelector(token string, limit int) func(*sql.Selector) {
+	p.impl.
+		WithToken(token).
+		WithLimit(limit)
+
+	type cursor struct {
+		LastID int64 `json:"last_id"`
+	}
+
+	// 无 token 或解码失败时只应用 limit
+	if token == "" {
+		return func(s *sql.Selector) {
+			s.Limit(p.impl.Limit())
+		}
+	}
+
+	b, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		return func(s *sql.Selector) {
+			s.Limit(p.impl.Limit())
+		}
+	}
+
+	var c cursor
+	if err = p.codec.Unmarshal(b, &c); err != nil {
+		return func(s *sql.Selector) {
+			s.Limit(p.impl.Limit())
+		}
+	}
+
+	lastID := c.LastID
+	return func(s *sql.Selector) {
+		s.Where(sql.GT("id", lastID))
+		s.Limit(p.impl.Limit())
+	}
+}
