@@ -495,6 +495,46 @@ func (q *Repository[DTO, ENTITY]) CreateXWithFilters(ctx context.Context, db *go
 	return res.RowsAffected, nil
 }
 
+// BatchCreate 批量创建记录，返回创建后的 DTO 列表
+// 将此方法添加到 `gorm/repository.go` 中的 Repository 定义下
+func (q *Repository[DTO, ENTITY]) BatchCreate(ctx context.Context, db *gorm.DB, dtos []*DTO, viewMask *fieldmaskpb.FieldMask) ([]*DTO, error) {
+	if db == nil {
+		return nil, errors.New("db is nil")
+	}
+	if len(dtos) == 0 {
+		return nil, nil
+	}
+
+	// 规范 viewMask 路径
+	field.NormalizeFieldMaskPaths(viewMask)
+
+	res := make([]*DTO, 0, len(dtos))
+	for _, dto := range dtos {
+		if dto == nil {
+			continue
+		}
+
+		// DTO -> ENTITY（保持与单条 Create 一致的映射方式）
+		ent := q.mapper.ToEntity(dto)
+
+		// 为每条记录构造独立的操作 DB（保留传入 db 的 scope）
+		qdb := db.WithContext(ctx).Model(new(ENTITY))
+		if viewMask != nil && len(viewMask.Paths) > 0 {
+			qdb = qdb.Select(viewMask.GetPaths())
+		}
+
+		r := qdb.Create(&ent)
+		if r.Error != nil {
+			log.Errorf("batch create failed: %s", r.Error.Error())
+			return nil, errors.New("batch create failed")
+		}
+
+		res = append(res, q.mapper.ToDTO(ent))
+	}
+
+	return res, nil
+}
+
 // Update 使用传入的 db（可包含 Where）更新记录，支持 updateMask 指定更新字段
 // 示例调用： `dto, err := q.Update(ctx, db.Where("id = ?", id), dto, updateMask)`
 func (q *Repository[DTO, ENTITY]) Update(ctx context.Context, db *gorm.DB, dto *DTO, updateMask *fieldmaskpb.FieldMask) (*DTO, error) {
@@ -907,4 +947,34 @@ func (q *Repository[DTO, ENTITY]) ExistsWithFilters(ctx context.Context, db *gor
 		return false, errors.New("exists query failed")
 	}
 	return true, nil
+}
+
+// SoftDelete 对符合 whereSelectors 的记录执行软删除
+// whereSelectors: 应用到查询的 where scopes（按顺序）
+// doSoftDeleteFunc: 可选回调，接收当前 *gorm.DB 并执行自定义更新操作（应返回执行后的 *gorm.DB）
+// 当 doSoftDeleteFunc 为 nil 时，默认更新 deleted_at 字段为当前时间
+func (q *Repository[DTO, ENTITY]) SoftDelete(ctx context.Context, db *gorm.DB, whereSelectors []func(*gorm.DB) *gorm.DB, doSoftDeleteFunc func(*gorm.DB) *gorm.DB) (int64, error) {
+	if db == nil {
+		return 0, errors.New("db is nil")
+	}
+
+	qdb := db.WithContext(ctx).Model(new(ENTITY))
+	for _, s := range whereSelectors {
+		if s != nil {
+			qdb = s(qdb)
+		}
+	}
+
+	var res *gorm.DB
+	if doSoftDeleteFunc != nil {
+		res = doSoftDeleteFunc(qdb)
+	} else {
+		res = qdb.Updates(map[string]interface{}{"deleted_at": time.Now()})
+	}
+
+	if res.Error != nil {
+		log.Errorf("soft delete failed: %s", res.Error.Error())
+		return 0, errors.New("soft delete failed")
+	}
+	return res.RowsAffected, nil
 }
