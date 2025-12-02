@@ -35,6 +35,12 @@ type QueryBuilder[ENTQ any, ENTS any, ENTITY any] interface {
 	Select(fields ...string) *ENTS
 
 	Exist(ctx context.Context) (bool, error)
+}
+
+type UpdateBuilder[ENTQ any, ENTS any, ENTITY any] interface {
+	Modify(modifiers ...func(s *sql.Selector)) UpdateBuilder[ENTQ, ENTS, ENTITY]
+
+	Clone() UpdateBuilder[ENTQ, ENTS, ENTITY]
 
 	Exec(ctx context.Context) error
 
@@ -389,10 +395,10 @@ func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) Only(
 // Create 根据 DTO 创建一条记录，返回创建后的 DTO
 func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) Create(
 	ctx context.Context,
-	builder QueryBuilder[ENTQ, ENTS, ENTITY],
+	builder UpdateBuilder[ENTQ, ENTS, ENTITY],
 	dto *DTO,
 	createMask *fieldmaskpb.FieldMask,
-	doCreateFieldFunc func(builder QueryBuilder[ENTQ, ENTS, ENTITY], dto *DTO),
+	doCreateFieldFunc func(builder UpdateBuilder[ENTQ, ENTS, ENTITY], dto *DTO),
 ) (*DTO, error) {
 	if builder == nil {
 		return nil, errors.New("query builder is nil")
@@ -425,10 +431,10 @@ func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) Create(
 // CreateX 仅执行创建操作，不返回创建后的数据
 func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) CreateX(
 	ctx context.Context,
-	builder QueryBuilder[ENTQ, ENTS, ENTITY],
+	builder UpdateBuilder[ENTQ, ENTS, ENTITY],
 	dto *DTO,
 	createMask *fieldmaskpb.FieldMask,
-	doCreateFieldFunc func(builder QueryBuilder[ENTQ, ENTS, ENTITY], dto *DTO),
+	doCreateFieldFunc func(builder UpdateBuilder[ENTQ, ENTS, ENTITY], dto *DTO),
 ) error {
 	if builder == nil {
 		return errors.New("query builder is nil")
@@ -460,10 +466,10 @@ func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) CreateX(
 // BatchCreate 批量创建记录，返回创建后的 DTO 列表
 func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) BatchCreate(
 	ctx context.Context,
-	builder QueryBuilder[ENTQ, ENTS, ENTITY],
+	builder UpdateBuilder[ENTQ, ENTS, ENTITY],
 	dtos []*DTO,
 	createMask *fieldmaskpb.FieldMask,
-	doCreateFieldFunc func(b QueryBuilder[ENTQ, ENTS, ENTITY], dto *DTO),
+	doCreateFieldFunc func(b UpdateBuilder[ENTQ, ENTS, ENTITY], dto *DTO),
 ) ([]*DTO, error) {
 	if builder == nil {
 		return nil, errors.New("query builder is nil")
@@ -501,10 +507,10 @@ func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) BatchCreate(
 // Update 根据实体更新数据
 func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) Update(
 	ctx context.Context,
-	builder QueryBuilder[ENTQ, ENTS, ENTITY],
+	builder UpdateBuilder[ENTQ, ENTS, ENTITY],
 	dto *DTO,
 	updateMask *fieldmaskpb.FieldMask,
-	doUpdateFieldFunc func(builder QueryBuilder[ENTQ, ENTS, ENTITY], dto *DTO),
+	doUpdateFieldFunc func(builder UpdateBuilder[ENTQ, ENTS, ENTITY], dto *DTO),
 ) (*DTO, error) {
 	if builder == nil {
 		return nil, errors.New("query builder is nil")
@@ -536,10 +542,10 @@ func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) Update(
 // UpdateX 仅执行更新操作，不返回更新后的数据
 func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) UpdateX(
 	ctx context.Context,
-	builder QueryBuilder[ENTQ, ENTS, ENTITY],
+	builder UpdateBuilder[ENTQ, ENTS, ENTITY],
 	dto *DTO,
 	updateMask *fieldmaskpb.FieldMask,
-	doUpdateFieldFunc func(builder QueryBuilder[ENTQ, ENTS, ENTITY], dto *DTO),
+	doUpdateFieldFunc func(builder UpdateBuilder[ENTQ, ENTS, ENTITY], dto *DTO),
 ) error {
 	if builder == nil {
 		return errors.New("query builder is nil")
@@ -569,7 +575,7 @@ func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) UpdateX(
 // Delete 根据查询条件删除记录
 func (r *Repository[ENTQ, ENTS, DTO, ENTITY]) Delete(
 	ctx context.Context,
-	builder QueryBuilder[ENTQ, ENTS, ENTITY],
+	builder UpdateBuilder[ENTQ, ENTS, ENTITY],
 	whereCond []func(s *sql.Selector),
 ) error {
 	if builder == nil {
