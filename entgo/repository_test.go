@@ -166,7 +166,7 @@ func TestUpdate_NilBuilder_ReturnsError(t *testing.T) {
 
 	//builder := cli.User.Update()
 
-	_, err := r.Update(ctx, nil, nil, nil, nil)
+	_, err := r.Update(ctx, nil, nil, nil, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "query builder is nil") {
 		t.Fatalf("expected 'query builder is nil' error, got: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestUpdate_NilDTO_ReturnsError(t *testing.T) {
 
 	builder := cli.User.Update()
 
-	_, err := r.Update(ctx, builder, nil, nil, nil)
+	_, err := r.Update(ctx, builder, nil, nil, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "dto is nil") {
 		t.Fatalf("expected 'dto is nil' error, got: %v", err)
 	}
@@ -194,7 +194,7 @@ func TestUpdateX_NilBuilder_ReturnsError(t *testing.T) {
 
 	//builder := cli.User.Update()
 
-	err := r.UpdateX(ctx, nil, nil, nil, nil)
+	err := r.UpdateX(ctx, nil, nil, nil, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "query builder is nil") {
 		t.Fatalf("expected 'query builder is nil' error, got: %v", err)
 	}
@@ -208,7 +208,7 @@ func TestUpdateX_NilDTO_ReturnsError(t *testing.T) {
 
 	builder := cli.User.Update()
 
-	err := r.UpdateX(ctx, builder, nil, nil, nil)
+	err := r.UpdateX(ctx, builder, nil, nil, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "dto is nil") {
 		t.Fatalf("expected 'dto is nil' error, got: %v", err)
 	}
@@ -232,7 +232,7 @@ func TestDelete_NilBuilder_ReturnsError(t *testing.T) {
 	m := &mapper.CopierMapper[User, ent.User]{}
 	r := NewRepository[ent.UserQuery, ent.UserSelect, ent.UserCreate, ent.UserCreateBulk, ent.UserUpdate, ent.UserDelete, predicate.User, User, ent.User](m)
 
-	err := r.Delete(ctx, nil, nil)
+	_, err := r.Delete(ctx, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "query builder is nil") {
 		t.Fatalf("expected 'query builder is nil' error, got: %v", err)
 	}
@@ -246,7 +246,7 @@ func TestDelete_WithFakeBuilder_NoError(t *testing.T) {
 
 	builder := cli.User.Delete()
 
-	err := r.Delete(ctx, builder, nil)
+	_, err := r.Delete(ctx, builder, nil)
 	if err != nil {
 		t.Fatalf("expected no error with fake delete builder, got: %v", err)
 	}
@@ -329,7 +329,7 @@ func TestCurd(t *testing.T) {
 	// Delete 调用
 	delBuilder := cli.User.Delete()
 	delBuilder.Where()
-	if err = r.Delete(ctx, delBuilder, nil); err != nil {
+	if _, err = r.Delete(ctx, delBuilder, nil); err != nil {
 		t.Fatalf("delete via repository failed: %v", err)
 	}
 

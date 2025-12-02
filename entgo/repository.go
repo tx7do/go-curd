@@ -86,7 +86,7 @@ type CreateBulkBuilder[ENT_CREATE_BULK any, ENTITY any] interface {
 	SaveX(ctx context.Context) []*ENTITY
 }
 
-type UpdateBuilder[ENT_UPDATE any, ENTITY any] interface {
+type UpdateBuilder[ENT_UPDATE any, PREDICATE any] interface {
 	Exec(ctx context.Context) error
 
 	ExecX(ctx context.Context)
@@ -94,6 +94,8 @@ type UpdateBuilder[ENT_UPDATE any, ENTITY any] interface {
 	Save(ctx context.Context) (int, error)
 
 	SaveX(ctx context.Context) int
+
+	Where(ps ...PREDICATE) *ENT_UPDATE
 }
 
 type DeleteBuilder[ENT_DELETE any, PREDICATE any] interface {
@@ -576,9 +578,10 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 // Update 根据实体更新数据
 func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDATE, ENT_DELETE, PREDICATE, DTO, ENTITY]) Update(
 	ctx context.Context,
-	builder UpdateBuilder[ENT_UPDATE, ENTITY],
+	builder UpdateBuilder[ENT_UPDATE, PREDICATE],
 	dto *DTO,
 	updateMask *fieldmaskpb.FieldMask,
+	whereCond []PREDICATE,
 	doUpdateFieldFunc func(dto *DTO),
 ) (*DTO, error) {
 	if builder == nil {
@@ -587,6 +590,10 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 
 	if dto == nil {
 		return nil, errors.New("dto is nil")
+	}
+
+	if whereCond != nil && len(whereCond) > 0 {
+		builder.Where(whereCond...)
 	}
 
 	var dtoAny any = dto
@@ -614,9 +621,10 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 // UpdateX 仅执行更新操作，不返回更新后的数据
 func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDATE, ENT_DELETE, PREDICATE, DTO, ENTITY]) UpdateX(
 	ctx context.Context,
-	builder UpdateBuilder[ENT_UPDATE, ENTITY],
+	builder UpdateBuilder[ENT_UPDATE, PREDICATE],
 	dto *DTO,
 	updateMask *fieldmaskpb.FieldMask,
+	whereCond []PREDICATE,
 	doUpdateFieldFunc func(dto *DTO),
 ) error {
 	if builder == nil {
@@ -625,6 +633,10 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 
 	if dto == nil {
 		return errors.New("dto is nil")
+	}
+
+	if whereCond != nil && len(whereCond) > 0 {
+		builder.Where(whereCond...)
 	}
 
 	var dtoAny any = dto
@@ -649,19 +661,21 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 	ctx context.Context,
 	builder DeleteBuilder[ENT_DELETE, PREDICATE],
 	whereCond []PREDICATE,
-) error {
+) (int, error) {
 	if builder == nil {
-		return errors.New("query builder is nil")
+		return 0, errors.New("query builder is nil")
 	}
 
-	if whereCond != nil {
+	if whereCond != nil && len(whereCond) > 0 {
 		builder.Where(whereCond...)
 	}
 
-	if _, err := builder.Exec(ctx); err != nil {
+	var affected int
+	var err error
+	if affected, err = builder.Exec(ctx); err != nil {
 		log.Errorf("delete failed: %s", err.Error())
-		return errors.New("delete failed")
+		return 0, errors.New("delete failed")
 	}
 
-	return nil
+	return affected, nil
 }
