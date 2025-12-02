@@ -19,6 +19,7 @@ import (
 	"github.com/tx7do/go-curd/entgo/filter"
 	paging "github.com/tx7do/go-curd/entgo/pagination"
 	"github.com/tx7do/go-curd/entgo/sorting"
+	"github.com/tx7do/go-curd/entgo/update"
 )
 
 type QueryBuilder[ENT_QUERY any, ENT_SELECT any, ENTITY any] interface {
@@ -96,6 +97,8 @@ type UpdateBuilder[ENT_UPDATE any, PREDICATE any] interface {
 	SaveX(ctx context.Context) int
 
 	Where(ps ...PREDICATE) *ENT_UPDATE
+
+	Modify(modifiers ...func(u *sql.UpdateBuilder)) *ENT_UPDATE
 }
 
 type DeleteBuilder[ENT_DELETE any, PREDICATE any] interface {
@@ -475,9 +478,13 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 	if dto == nil {
 		return nil, errors.New("dto is nil")
 	}
+	field.NormalizeFieldMaskPaths(createMask)
 
 	var dtoAny any = dto
 	var dtoProto = dtoAny.(proto.Message)
+	if dtoProto == nil {
+		return nil, errors.New("dto proto message is nil")
+	}
 	if err := fieldmaskutil.FilterByFieldMask(trans.Ptr(dtoProto), createMask); err != nil {
 		log.Errorf("invalid field mask [%v], error: %s", createMask, err.Error())
 		return nil, err
@@ -512,8 +519,13 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 		return errors.New("dto is nil")
 	}
 
+	field.NormalizeFieldMaskPaths(createMask)
+
 	var dtoAny any = dto
 	var dtoProto = dtoAny.(proto.Message)
+	if dtoProto == nil {
+		return errors.New("dto proto message is nil")
+	}
 	if err := fieldmaskutil.FilterByFieldMask(trans.Ptr(dtoProto), createMask); err != nil {
 		log.Errorf("invalid field mask [%v], error: %s", createMask, err.Error())
 		return err
@@ -543,8 +555,10 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 		return nil, errors.New("query builder is nil")
 	}
 	if len(dtos) == 0 {
-		return nil, nil
+		return nil, errors.New("dtos is empty")
 	}
+
+	field.NormalizeFieldMaskPaths(createMask)
 
 	ents := make([]*ENTITY, 0, len(dtos))
 	for _, dto := range dtos {
@@ -553,6 +567,10 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 		}
 		var dtoAny any = dto
 		dtoProto := dtoAny.(proto.Message)
+		if dtoProto == nil {
+			continue
+		}
+
 		if err := fieldmaskutil.FilterByFieldMask(trans.Ptr(dtoProto), createMask); err != nil {
 			log.Errorf("invalid field mask [%v], error: %s", createMask, err.Error())
 			return nil, err
@@ -596,14 +614,23 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 		builder.Where(whereCond...)
 	}
 
+	field.NormalizeFieldMaskPaths(updateMask)
+
 	var dtoAny any = dto
 	var dtoProto = dtoAny.(proto.Message)
+	if dtoProto == nil {
+		return nil, errors.New("dto proto message is nil")
+	}
 	if err := fieldmaskutil.FilterByFieldMask(trans.Ptr(dtoProto), updateMask); err != nil {
 		log.Errorf("invalid field mask [%v], error: %s", updateMask, err.Error())
 		return nil, err
 	}
 
-	doUpdateFieldFunc(dto)
+	if doUpdateFieldFunc != nil {
+		doUpdateFieldFunc(dto)
+	}
+
+	r.applyUpdateNilFieldMask(dtoProto, updateMask, builder)
 
 	var err error
 	var afterRows int
@@ -616,6 +643,28 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 	}
 
 	return nil, nil
+}
+
+// applyUpdateNilFieldMask 应用字段掩码以设置字段为NULL
+func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDATE, ENT_DELETE, PREDICATE, DTO, ENTITY]) applyUpdateNilFieldMask(
+	msg proto.Message,
+	updateMask *fieldmaskpb.FieldMask,
+	builder UpdateBuilder[ENT_UPDATE, PREDICATE],
+) {
+	if msg == nil {
+		return
+	}
+	if updateMask == nil {
+		return
+	}
+
+	nilPaths := fieldmaskutil.NilValuePaths(msg, updateMask.GetPaths())
+	nilUpdater := update.BuildSetNullUpdater(nilPaths)
+	if nilUpdater != nil {
+		if builder != nil {
+			builder.Modify(nilUpdater)
+		}
+	}
 }
 
 // UpdateX 仅执行更新操作，不返回更新后的数据
@@ -639,14 +688,23 @@ func (r *Repository[ENT_QUERY, ENT_SELECT, ENT_CREATE, ENT_CREATE_BULK, ENT_UPDA
 		builder.Where(whereCond...)
 	}
 
+	field.NormalizeFieldMaskPaths(updateMask)
+
 	var dtoAny any = dto
 	var dtoProto = dtoAny.(proto.Message)
+	if dtoProto == nil {
+		return errors.New("dto proto message is nil")
+	}
 	if err := fieldmaskutil.FilterByFieldMask(trans.Ptr(dtoProto), updateMask); err != nil {
 		log.Errorf("invalid field mask [%v], error: %s", updateMask, err.Error())
 		return err
 	}
 
-	doUpdateFieldFunc(dto)
+	if doUpdateFieldFunc != nil {
+		doUpdateFieldFunc(dto)
+	}
+
+	r.applyUpdateNilFieldMask(dtoProto, updateMask, builder)
 
 	if err := builder.Exec(ctx); err != nil {
 		log.Errorf("update one data failed: %s", err.Error())
