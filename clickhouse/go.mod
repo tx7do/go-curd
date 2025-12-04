@@ -2,6 +2,8 @@ module github.com/tx7do/go-crud/clickhouse
 
 go 1.25.3
 
+replace github.com/tx7do/go-crud => ../
+
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.41.0
 	github.com/go-kratos/kratos/v2 v2.9.1

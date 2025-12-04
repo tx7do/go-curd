@@ -2,6 +2,8 @@ module github.com/tx7do/go-crud/influxdb
 
 go 1.24.6
 
+replace github.com/tx7do/go-crud => ../
+
 require (
 	github.com/InfluxCommunity/influxdb3-go/v2 v2.11.0
 	github.com/go-kratos/kratos/v2 v2.9.1

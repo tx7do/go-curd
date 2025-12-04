@@ -2,6 +2,8 @@ module github.com/tx7do/go-crud/database/mongodb
 
 go 1.24.6
 
+replace github.com/tx7do/go-crud => ../
+
 replace github.com/tx7do/go-crud/api => ../../api
 
 require (

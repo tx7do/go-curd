@@ -2,11 +2,13 @@ module github.com/tx7do/go-crud/elasticsearch
 
 go 1.24.6
 
+replace github.com/tx7do/go-crud => ../
+
 require (
 	github.com/elastic/go-elasticsearch/v9 v9.2.0
 	github.com/go-kratos/kratos/v2 v2.9.1
 	github.com/stretchr/testify v1.11.1
-	github.com/tx7do/go-crud v0.0.1
+	github.com/tx7do/go-crud v0.0.5
 )
 
 require (
@@ -23,7 +25,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/sys v0.38.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251124214823-79d6a2a48846 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/grpc v1.77.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
