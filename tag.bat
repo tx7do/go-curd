@@ -1,6 +1,12 @@
-git tag entgo/v0.0.9 --force
-git tag gorm/v0.0.2 --force
+git tag entgo/v0.0.10 --force
+git tag gorm/v0.0.3 --force
 
-git tag v0.0.1
+git tag cassandra/v0.0.1 --force
+git tag clickhouse/v0.0.1 --force
+git tag elasticsearch/v0.0.1 --force
+git tag influxdb/v0.0.1 --force
+git tag mongodb/v0.0.1 --force
+
+git tag v0.0.2 --force
 
 git push origin --tags
