@@ -10,8 +10,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/tx7do/go-curd/entgo/ent/predicate"
-	"github.com/tx7do/go-curd/entgo/ent/user"
+	"github.com/tx7do/go-crud/entgo/ent/predicate"
+	"github.com/tx7do/go-crud/entgo/ent/user"
 )
 
 // UserUpdate is the builder for updating User entities.

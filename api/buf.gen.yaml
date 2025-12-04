@@ -6,7 +6,7 @@ managed:
   optimize_for: SPEED
 
   go_package_prefix:
-    default: github.com/tx7do/go-curd/api/gen/go
+    default: github.com/tx7do/go-crud/api/gen/go
     except:
       - 'buf.build/googleapis/googleapis'
       - 'buf.build/envoyproxy/protoc-gen-validate'

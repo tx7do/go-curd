@@ -13,12 +13,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
-	paginationV1 "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
-	"github.com/tx7do/go-curd/entgo/field"
-	"github.com/tx7do/go-curd/entgo/filter"
-	paging "github.com/tx7do/go-curd/entgo/pagination"
-	"github.com/tx7do/go-curd/entgo/sorting"
-	"github.com/tx7do/go-curd/entgo/update"
+	paginationV1 "github.com/tx7do/go-crud/api/gen/go/pagination/v1"
+	"github.com/tx7do/go-crud/entgo/field"
+	"github.com/tx7do/go-crud/entgo/filter"
+	paging "github.com/tx7do/go-crud/entgo/pagination"
+	"github.com/tx7do/go-crud/entgo/sorting"
+	"github.com/tx7do/go-crud/entgo/update"
 )
 
 type QueryBuilder[ENT_QUERY any, ENT_SELECT any, ENTITY any] interface {

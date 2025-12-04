@@ -1,4 +1,4 @@
-module github.com/tx7do/go-curd/cassandra
+module github.com/tx7do/go-crud/cassandra
 
 go 1.24.6
 

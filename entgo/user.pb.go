@@ -91,7 +91,7 @@ const file_user_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x15\n" +
 	"\x03age\x18\x03 \x01(\rH\x00R\x03age\x88\x01\x01B\x06\n" +
-	"\x04_ageB&Z$github.com/tx7do/go-curd/entgo;entgob\x06proto3"
+	"\x04_ageB&Z$github.com/tx7do/go-crud/entgo;entgob\x06proto3"
 
 var (
 	file_user_proto_rawDescOnce sync.Once

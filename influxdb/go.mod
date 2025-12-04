@@ -1,4 +1,4 @@
-module github.com/tx7do/go-curd/influxdb
+module github.com/tx7do/go-crud/influxdb
 
 go 1.24.6
 

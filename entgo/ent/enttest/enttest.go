@@ -5,12 +5,12 @@ package enttest
 import (
 	"context"
 
-	"github.com/tx7do/go-curd/entgo/ent"
+	"github.com/tx7do/go-crud/entgo/ent"
 	// required by schema hooks.
-	_ "github.com/tx7do/go-curd/entgo/ent/runtime"
+	_ "github.com/tx7do/go-crud/entgo/ent/runtime"
 
 	"entgo.io/ent/dialect/sql/schema"
-	"github.com/tx7do/go-curd/entgo/ent/migrate"
+	"github.com/tx7do/go-crud/entgo/ent/migrate"
 )
 
 type (

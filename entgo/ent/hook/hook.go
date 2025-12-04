@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/tx7do/go-curd/entgo/ent"
+	"github.com/tx7do/go-crud/entgo/ent"
 )
 
 // The UserFunc type is an adapter to allow the use of ordinary

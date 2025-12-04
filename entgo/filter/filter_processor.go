@@ -12,8 +12,8 @@ import (
 
 	"github.com/tx7do/go-utils/stringcase"
 
-	pagination "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
-	"github.com/tx7do/go-curd/paginator"
+	pagination "github.com/tx7do/go-crud/api/gen/go/pagination/v1"
+	"github.com/tx7do/go-crud/paginator"
 )
 
 // escapeSQLString 对 SQL 字面量做最小转义，双写单引号并转义反斜杠，降低注入风险。

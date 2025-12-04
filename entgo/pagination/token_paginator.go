@@ -8,7 +8,7 @@ import (
 	"github.com/go-kratos/kratos/v2/encoding"
 	_ "github.com/go-kratos/kratos/v2/encoding/json"
 
-	"github.com/tx7do/go-curd/paginator"
+	"github.com/tx7do/go-crud/paginator"
 )
 
 // TokenPaginator 基于 Token 的分页器

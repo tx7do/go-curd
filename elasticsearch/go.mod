@@ -1,4 +1,4 @@
-module github.com/tx7do/go-curd/elasticsearch
+module github.com/tx7do/go-crud/elasticsearch
 
 go 1.24.6
 
@@ -6,7 +6,7 @@ require (
 	github.com/elastic/go-elasticsearch/v9 v9.2.0
 	github.com/go-kratos/kratos/v2 v2.9.1
 	github.com/stretchr/testify v1.11.1
-	github.com/tx7do/go-curd v0.0.1
+	github.com/tx7do/go-crud v0.0.1
 )
 
 require (

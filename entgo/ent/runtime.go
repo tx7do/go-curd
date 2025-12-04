@@ -3,8 +3,8 @@
 package ent
 
 import (
-	"github.com/tx7do/go-curd/entgo/ent/schema"
-	"github.com/tx7do/go-curd/entgo/ent/user"
+	"github.com/tx7do/go-crud/entgo/ent/schema"
+	"github.com/tx7do/go-crud/entgo/ent/user"
 )
 
 // The init function reads all schema descriptors with runtime code

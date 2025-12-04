@@ -6,7 +6,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
-	pagination "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
+	pagination "github.com/tx7do/go-crud/api/gen/go/pagination/v1"
 )
 
 func TestStructuredSorting_BuildSelector_Empty(t *testing.T) {

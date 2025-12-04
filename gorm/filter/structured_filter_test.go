@@ -7,7 +7,7 @@ import (
 	"github.com/tx7do/go-utils/trans"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	pagination "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
+	pagination "github.com/tx7do/go-crud/api/gen/go/pagination/v1"
 )
 
 func mustMarshal(fe *pagination.FilterExpr) string {

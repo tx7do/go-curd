@@ -1,8 +1,8 @@
-module github.com/tx7do/go-curd/database/mongodb
+module github.com/tx7do/go-crud/database/mongodb
 
 go 1.24.6
 
-replace github.com/tx7do/go-curd/api => ../../api
+replace github.com/tx7do/go-crud/api => ../../api
 
 require (
 	github.com/go-kratos/kratos/v2 v2.9.1

@@ -1,4 +1,4 @@
-module github.com/tx7do/go-curd/entgo
+module github.com/tx7do/go-crud/entgo
 
 go 1.24.6
 
@@ -7,7 +7,7 @@ require (
 	github.com/XSAM/otelsql v0.40.0
 	github.com/go-kratos/kratos/v2 v2.9.1
 	github.com/stretchr/testify v1.11.1
-	github.com/tx7do/go-curd v0.0.1
+	github.com/tx7do/go-crud v0.0.1
 	github.com/tx7do/go-utils v1.1.34
 	github.com/tx7do/go-utils/mapper v0.0.3
 	github.com/xiaoqidun/entps v1.39.1
@@ -53,4 +53,4 @@ require (
 	modernc.org/sqlite v1.39.1 // indirect
 )
 
-replace github.com/tx7do/go-curd => ../
+replace github.com/tx7do/go-crud => ../

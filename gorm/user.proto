@@ -2,7 +2,7 @@
 
 package gorm;
 
-option go_package = "github.com/tx7do/go-curd/gorm;gorm";
+option go_package = "github.com/tx7do/go-crud/gorm;gorm";
 
 message User {
   uint32 id = 1;

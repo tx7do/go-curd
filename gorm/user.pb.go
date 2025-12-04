@@ -90,7 +90,7 @@ const file_user_proto_rawDesc = "" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x10\n" +
-	"\x03age\x18\x03 \x01(\rR\x03ageB$Z\"github.com/tx7do/go-curd/gorm;gormb\x06proto3"
+	"\x03age\x18\x03 \x01(\rR\x03ageB$Z\"github.com/tx7do/go-crud/gorm;gormb\x06proto3"
 
 var (
 	file_user_proto_rawDescOnce sync.Once

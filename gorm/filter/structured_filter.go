@@ -11,7 +11,7 @@ import (
 
 	"github.com/tx7do/go-utils/stringcase"
 
-	pagination "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
+	pagination "github.com/tx7do/go-crud/api/gen/go/pagination/v1"
 )
 
 // StructuredFilter 基于 FilterExpr 的 GORM 过滤器

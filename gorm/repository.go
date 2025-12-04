@@ -13,11 +13,11 @@ import (
 
 	"github.com/tx7do/go-utils/mapper"
 
-	paginationV1 "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
-	"github.com/tx7do/go-curd/gorm/field"
-	"github.com/tx7do/go-curd/gorm/filter"
-	paging "github.com/tx7do/go-curd/gorm/pagination"
-	"github.com/tx7do/go-curd/gorm/sorting"
+	paginationV1 "github.com/tx7do/go-crud/api/gen/go/pagination/v1"
+	"github.com/tx7do/go-crud/gorm/field"
+	"github.com/tx7do/go-crud/gorm/filter"
+	paging "github.com/tx7do/go-crud/gorm/pagination"
+	"github.com/tx7do/go-crud/gorm/sorting"
 )
 
 // PagingResult 通用分页返回

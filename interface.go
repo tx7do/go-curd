@@ -1,1 +1,1 @@
-package go_curd
+package go_crud

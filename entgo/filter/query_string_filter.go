@@ -9,7 +9,7 @@ import (
 	_ "github.com/go-kratos/kratos/v2/encoding/json"
 	"github.com/go-kratos/kratos/v2/log"
 
-	"github.com/tx7do/go-curd/paginator"
+	"github.com/tx7do/go-crud/paginator"
 	"github.com/tx7do/go-utils/stringcase"
 )
 

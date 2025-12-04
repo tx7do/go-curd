@@ -8,7 +8,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/tx7do/go-curd/entgo/ent/user"
+	"github.com/tx7do/go-crud/entgo/ent/user"
 )
 
 // User is the model entity for the User schema.

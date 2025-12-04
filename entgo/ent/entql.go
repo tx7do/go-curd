@@ -3,7 +3,7 @@
 package ent
 
 import (
-	"github.com/tx7do/go-curd/entgo/ent/user"
+	"github.com/tx7do/go-crud/entgo/ent/user"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"

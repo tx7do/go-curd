@@ -1,4 +1,4 @@
-module github.com/tx7do/go-curd/clickhouse
+module github.com/tx7do/go-crud/clickhouse
 
 go 1.25.3
 

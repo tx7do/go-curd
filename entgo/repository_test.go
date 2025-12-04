@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"entgo.io/ent/dialect"
-	"github.com/tx7do/go-curd/entgo/ent/predicate"
+	"github.com/tx7do/go-crud/entgo/ent/predicate"
 	"github.com/tx7do/go-utils/mapper"
 	"github.com/tx7do/go-utils/trans"
 
-	paginationV1 "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
-	"github.com/tx7do/go-curd/entgo/ent"
-	"github.com/tx7do/go-curd/entgo/ent/enttest"
+	paginationV1 "github.com/tx7do/go-crud/api/gen/go/pagination/v1"
+	"github.com/tx7do/go-crud/entgo/ent"
+	"github.com/tx7do/go-crud/entgo/ent/enttest"
 
 	_ "github.com/xiaoqidun/entps"
 )

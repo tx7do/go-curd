@@ -12,7 +12,7 @@ import (
 
 	"github.com/tx7do/go-utils/mapper"
 
-	paginationV1 "github.com/tx7do/go-curd/api/gen/go/pagination/v1"
+	paginationV1 "github.com/tx7do/go-crud/api/gen/go/pagination/v1"
 )
 
 // 测试用实体与 DTO

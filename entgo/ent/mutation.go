@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/tx7do/go-curd/entgo/ent/predicate"
-	"github.com/tx7do/go-curd/entgo/ent/user"
+	"github.com/tx7do/go-crud/entgo/ent/predicate"
+	"github.com/tx7do/go-crud/entgo/ent/user"
 )
 
 const (
