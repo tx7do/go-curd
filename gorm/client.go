@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"gorm.io/plugin/opentelemetry/tracing"
+	"gorm.io/plugin/prometheus"
 
 	goSqlite "github.com/glebarez/sqlite"
 	"github.com/oracle-samples/gorm-oracle/oracle"
@@ -48,19 +49,21 @@ type Client struct {
 	*gorm.DB
 
 	// 基础配置
-	driverName    string
-	dsn           string
+	driverName string
+	dsn        string
+
 	enableTrace   bool
 	enableMigrate bool
 	enableMetrics bool
-	migrateModels []interface{}
-	gormCfg       *gorm.Config
 
-	mixins           []Mixin
+	migrateModels    []interface{}
 	getMigrateModels GetMigrateModelsFunc
 
-	ctx       context.Context
+	gormCfg   *gorm.Config
 	cfgStruct interface{}
+	mixins    []Mixin
+
+	ctx       context.Context
 	envPrefix string
 
 	// 钩子
@@ -72,6 +75,12 @@ type Client struct {
 
 	// logger helper
 	logger *log.Helper
+
+	prometheusConfig prometheus.Config
+
+	maxIdleConns    *int
+	maxOpenConns    *int
+	connMaxLifetime *time.Duration
 }
 
 // NewClient 创建 GORM 客户端
@@ -221,6 +230,25 @@ func (c *Client) createGormClient() error {
 
 		if err = client.Use(tracing.NewPlugin(opts...)); err != nil {
 			return fmt.Errorf("failed opening connection to db: %v", err)
+		}
+	}
+
+	if c.enableMetrics {
+		if err = client.Use(prometheus.New(c.prometheusConfig)); err != nil {
+			return fmt.Errorf("failed enable prometheus metrics: %v", err)
+		}
+	}
+
+	sqlDB, _ := c.DB.DB()
+	if sqlDB != nil {
+		if c.maxIdleConns != nil {
+			sqlDB.SetMaxIdleConns(*c.maxIdleConns)
+		}
+		if c.maxOpenConns != nil {
+			sqlDB.SetMaxOpenConns(*c.maxOpenConns)
+		}
+		if c.connMaxLifetime != nil {
+			sqlDB.SetConnMaxLifetime(*c.connMaxLifetime)
 		}
 	}
 

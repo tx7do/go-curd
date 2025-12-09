@@ -2,9 +2,11 @@ package gorm
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"gorm.io/gorm"
+	"gorm.io/plugin/prometheus"
 )
 
 type Option func(*Client)
@@ -137,5 +139,72 @@ func WithRawOptions(m RawOptions) Option {
 		for k, v := range m {
 			c.rawOptions[k] = v
 		}
+	}
+}
+
+func WithPrometheusConfig(cfg prometheus.Config) Option {
+	return func(c *Client) {
+		c.prometheusConfig = cfg
+	}
+}
+
+func WithPrometheusDbName(dbName string) Option {
+	return func(c *Client) {
+		c.prometheusConfig.DBName = dbName
+	}
+}
+
+func WithPrometheusPushAddr(pushAddr string) Option {
+	return func(c *Client) {
+		c.prometheusConfig.PushAddr = pushAddr
+	}
+}
+
+func WithPrometheusHTTPServerPort(httpServerPort uint32) Option {
+	return func(c *Client) {
+		c.prometheusConfig.HTTPServerPort = httpServerPort
+	}
+}
+
+func WithPrometheusRefreshInterval(refreshInterval uint32) Option {
+	return func(c *Client) {
+		c.prometheusConfig.RefreshInterval = refreshInterval
+	}
+}
+
+func WithPrometheusPushAuth(user, password string) Option {
+	return func(c *Client) {
+		c.prometheusConfig.PushUser = user
+		c.prometheusConfig.PushPassword = password
+	}
+}
+
+func WithPrometheusStartServer(startServer bool) Option {
+	return func(c *Client) {
+		c.prometheusConfig.StartServer = startServer
+	}
+}
+
+func WithPrometheusLabels(labels map[string]string) Option {
+	return func(c *Client) {
+		c.prometheusConfig.Labels = labels
+	}
+}
+
+func WithMaxIdleConns(maxIdleConns int) Option {
+	return func(c *Client) {
+		c.maxIdleConns = &maxIdleConns
+	}
+}
+
+func WithMaxOpenConns(maxOpenConns int) Option {
+	return func(c *Client) {
+		c.maxOpenConns = &maxOpenConns
+	}
+}
+
+func WithConnMaxLifetime(connMaxLifetime time.Duration) Option {
+	return func(c *Client) {
+		c.connMaxLifetime = &connMaxLifetime
 	}
 }
