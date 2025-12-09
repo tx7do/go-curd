@@ -6,12 +6,12 @@ import (
 	"gorm.io/gorm"
 )
 
-// TestNewClient_CreateSQLiteDB 验证通过 driverName/dsn 能在内存中创建 DB
+// TestNewClient_CreateSQLiteDB 验证通过 driverName/masterDSN 能在内存中创建 DB
 func TestNewClient_CreateSQLiteDB(t *testing.T) {
 	opts := []Option{
 		Option(func(c *Client) {
 			c.driverName = "go_sqlite"
-			c.dsn = ":memory:"
+			c.masterDSN = ":memory:"
 			c.enableMigrate = false
 		}),
 	}
@@ -43,7 +43,7 @@ func TestNewClient_BeforeAfterOpen(t *testing.T) {
 	opts := []Option{
 		Option(func(c *Client) {
 			c.driverName = "go_sqlite"
-			c.dsn = ":memory:"
+			c.masterDSN = ":memory:"
 			// 注入 beforeOpen
 			c.beforeOpen = append(c.beforeOpen, func(db *gorm.DB) error {
 				beforeCalled = true
@@ -82,7 +82,7 @@ func TestNewClient_AutoMigrateWithGetMigrateModels(t *testing.T) {
 	opts := []Option{
 		Option(func(c *Client) {
 			c.driverName = "go_sqlite"
-			c.dsn = ":memory:"
+			c.masterDSN = ":memory:"
 			c.enableMigrate = true
 			// 提供非空的 getMigrateModels，避免潜在的 nil 调用
 			c.getMigrateModels = func() []interface{} {

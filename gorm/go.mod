@@ -13,6 +13,8 @@ require (
 	github.com/tx7do/go-utils v1.1.34
 	github.com/tx7do/go-utils/id v0.0.2
 	github.com/tx7do/go-utils/mapper v0.0.3
+	go.opentelemetry.io/otel v1.39.0
+	go.opentelemetry.io/otel/trace v1.39.0
 	google.golang.org/protobuf v1.36.10
 	gorm.io/datatypes v1.2.7
 	gorm.io/driver/bigquery v1.2.0
@@ -23,6 +25,7 @@ require (
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/driver/sqlserver v1.6.3
 	gorm.io/gorm v1.31.1
+	gorm.io/plugin/dbresolver v1.6.2
 	gorm.io/plugin/opentelemetry v0.1.16
 	gorm.io/plugin/prometheus v0.1.0
 )
@@ -58,7 +61,6 @@ require (
 	github.com/godror/knownpb v0.3.0 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/flatbuffers v25.9.23+incompatible // indirect
 	github.com/google/gnostic v0.7.1 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
@@ -78,15 +80,15 @@ require (
 	github.com/lithammer/shortuuid/v4 v4.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.32 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/microsoft/go-mssqldb v1.9.5 // indirect
+	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/paulmach/orb v0.12.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
-	github.com/prometheus/client_golang v1.17.0 // indirect
-	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 // indirect
-	github.com/prometheus/common v0.44.0 // indirect
-	github.com/prometheus/procfs v0.11.1 // indirect
+	github.com/prometheus/client_golang v1.23.2 // indirect
+	github.com/prometheus/client_model v0.6.2 // indirect
+	github.com/prometheus/common v0.67.4 // indirect
+	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
@@ -100,9 +102,8 @@ require (
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.64.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.64.0 // indirect
-	go.opentelemetry.io/otel v1.39.0 // indirect
 	go.opentelemetry.io/otel/metric v1.39.0 // indirect
-	go.opentelemetry.io/otel/trace v1.39.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/exp v0.0.0-20251125195548-87e1e737ad39 // indirect

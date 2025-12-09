@@ -22,6 +22,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/driver/sqlserver"
+	"gorm.io/plugin/dbresolver"
 )
 
 type gormLoggerWriter struct {
@@ -49,12 +50,14 @@ type Client struct {
 	*gorm.DB
 
 	// 基础配置
-	driverName string
-	dsn        string
+	driverName  string
+	masterDSN   string
+	replicaDsns []string
 
-	enableTrace   bool
-	enableMigrate bool
-	enableMetrics bool
+	enableTrace      bool
+	enableMigrate    bool
+	enableMetrics    bool
+	enableDbResolver bool
 
 	migrateModels    []interface{}
 	getMigrateModels GetMigrateModelsFunc
@@ -77,6 +80,7 @@ type Client struct {
 	logger *log.Helper
 
 	prometheusConfig prometheus.Config
+	tracingOption    []tracing.Option
 
 	maxIdleConns    *int
 	maxOpenConns    *int
@@ -97,12 +101,12 @@ func NewClient(opts ...Option) (*Client, error) {
 		}
 	}
 
-	// 如果没有外部传入 DB，则尝试根据 driverName/dsn 创建
+	// 如果没有外部传入 DB，则尝试根据 driverName/masterDSN 创建
 	if c.DB == nil {
-		if c.driverName == "" || c.dsn == "" {
-			return nil, fmt.Errorf("gorm DB not provided; either use WithGormDB or provide driverName/dsn")
+		if c.driverName == "" || c.masterDSN == "" {
+			return nil, fmt.Errorf("gorm DB not provided; either use WithGormDB or provide driverName/masterDSN")
 		}
-		if err := c.createGormClient(); err != nil {
+		if err := c.initGormClient(); err != nil {
 			return nil, err
 		}
 	}
@@ -153,6 +157,103 @@ func (c *Client) Use(m Mixin) {
 	c.mixins = append(c.mixins, m)
 }
 
+func (c *Client) resolveMigrateModels() []interface{} {
+	var out []interface{}
+
+	// 已注册的模型（全局注册函数）
+	if regs := getRegisteredMigrateModels(); len(regs) > 0 {
+		out = append(out, regs...)
+	}
+
+	// 通过注入函数获得的模型
+	if c.getMigrateModels != nil {
+		out = append(out, c.getMigrateModels()...)
+	}
+
+	// 实例级别的 migrateModels
+	if len(c.migrateModels) > 0 {
+		out = append(out, c.migrateModels...)
+	}
+
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// initGormClient 初始化GORM的客户端
+func (c *Client) initGormClient() error {
+	client, err := createGormClient(c.driverName, c.masterDSN, c.gormCfg)
+	if err != nil {
+		return fmt.Errorf("failed opening connection to db: %v", err)
+	}
+	c.DB = client
+
+	if c.enableTrace {
+		if err = client.Use(tracing.NewPlugin(c.tracingOption...)); err != nil {
+			return fmt.Errorf("failed enable tracing plugin: %v", err)
+		}
+	}
+
+	if c.enableMetrics {
+		if err = client.Use(prometheus.New(c.prometheusConfig)); err != nil {
+			return fmt.Errorf("failed enable prometheus metrics: %v", err)
+		}
+	}
+
+	// 注册读写分离
+	if c.enableDbResolver {
+		masterDriver := createDriver(c.masterDSN, c.masterDSN)
+
+		var replicaDrivers []gorm.Dialector
+		for _, replicaDSN := range c.replicaDsns {
+			replicaClient := createDriver(c.driverName, replicaDSN)
+			replicaDrivers = append(replicaDrivers, replicaClient)
+		}
+
+		if err = client.Use(dbresolver.Register(dbresolver.Config{
+			Sources:  []gorm.Dialector{masterDriver},
+			Replicas: replicaDrivers,
+			Policy:   dbresolver.RandomPolicy{},
+		})); err != nil {
+			panic(err)
+		}
+	}
+
+	sqlDB, _ := c.DB.DB()
+	if sqlDB != nil {
+		if c.maxIdleConns != nil {
+			sqlDB.SetMaxIdleConns(*c.maxIdleConns)
+		}
+		if c.maxOpenConns != nil {
+			sqlDB.SetMaxOpenConns(*c.maxOpenConns)
+		}
+		if c.connMaxLifetime != nil {
+			sqlDB.SetConnMaxLifetime(*c.connMaxLifetime)
+		}
+	}
+
+	// 运行数据库迁移工具
+	if c.enableMigrate {
+		if err = c.doAutoMigrate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doAutoMigrate 执行自动迁移
+func (c *Client) doAutoMigrate() error {
+	if err := c.AutoMigrate(
+		c.getMigrateModels()...,
+	); err != nil {
+		return fmt.Errorf("failed creating schema resources: %v", err)
+	}
+
+	return nil
+}
+
 // createDriver 创建数据库驱动
 func createDriver(driverName, dsn string) gorm.Dialector {
 	switch driverName {
@@ -186,82 +287,16 @@ func createDriver(driverName, dsn string) gorm.Dialector {
 	}
 }
 
-func (c *Client) resolveMigrateModels() []interface{} {
-	var out []interface{}
-
-	// 已注册的模型（全局注册函数）
-	if regs := getRegisteredMigrateModels(); len(regs) > 0 {
-		out = append(out, regs...)
-	}
-
-	// 通过注入函数获得的模型
-	if c.getMigrateModels != nil {
-		out = append(out, c.getMigrateModels()...)
-	}
-
-	// 实例级别的 migrateModels
-	if len(c.migrateModels) > 0 {
-		out = append(out, c.migrateModels...)
-	}
-
-	if len(out) == 0 {
-		return nil
-	}
-	return out
-}
-
-// createGormClient 创建GORM的客户端
-func (c *Client) createGormClient() error {
-	driver := createDriver(c.driverName, c.dsn)
+func createGormClient(driverName, dsn string, cfg *gorm.Config) (*gorm.DB, error) {
+	driver := createDriver(driverName, dsn)
 	if driver == nil {
-		return fmt.Errorf("unsupported database driver: %s", c.driverName)
+		return nil, fmt.Errorf("unsupported database driver: %s", driverName)
 	}
 
-	client, err := gorm.Open(driver, c.gormCfg)
+	client, err := gorm.Open(driver, cfg)
 	if err != nil {
-		return fmt.Errorf("failed opening connection to db: %v", err)
+		return nil, fmt.Errorf("failed opening connection to db: %v", err)
 	}
 
-	if c.enableTrace {
-		var opts []tracing.Option
-		if c.enableMetrics {
-			opts = append(opts, tracing.WithoutMetrics())
-		}
-
-		if err = client.Use(tracing.NewPlugin(opts...)); err != nil {
-			return fmt.Errorf("failed opening connection to db: %v", err)
-		}
-	}
-
-	if c.enableMetrics {
-		if err = client.Use(prometheus.New(c.prometheusConfig)); err != nil {
-			return fmt.Errorf("failed enable prometheus metrics: %v", err)
-		}
-	}
-
-	sqlDB, _ := c.DB.DB()
-	if sqlDB != nil {
-		if c.maxIdleConns != nil {
-			sqlDB.SetMaxIdleConns(*c.maxIdleConns)
-		}
-		if c.maxOpenConns != nil {
-			sqlDB.SetMaxOpenConns(*c.maxOpenConns)
-		}
-		if c.connMaxLifetime != nil {
-			sqlDB.SetConnMaxLifetime(*c.connMaxLifetime)
-		}
-	}
-
-	// 运行数据库迁移工具
-	if c.enableMigrate {
-		if err = client.AutoMigrate(
-			c.getMigrateModels()...,
-		); err != nil {
-			return fmt.Errorf("failed creating schema resources: %v", err)
-		}
-	}
-
-	c.DB = client
-
-	return nil
+	return client, nil
 }

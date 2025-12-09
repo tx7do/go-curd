@@ -5,7 +5,11 @@ import (
 	"time"
 
 	"github.com/go-kratos/kratos/v2/log"
+	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm"
+	"gorm.io/plugin/opentelemetry/tracing"
 	"gorm.io/plugin/prometheus"
 )
 
@@ -29,7 +33,13 @@ func WithDriverName(name string) Option {
 
 func WithDSN(dsn string) Option {
 	return func(c *Client) {
-		c.dsn = dsn
+		c.masterDSN = dsn
+	}
+}
+
+func WithReplicaDsns(dsn []string) Option {
+	return func(c *Client) {
+		c.replicaDsns = dsn
 	}
 }
 
@@ -48,6 +58,12 @@ func WithEnableMigrate(enable bool) Option {
 func WithEnableMetrics(enable bool) Option {
 	return func(c *Client) {
 		c.enableMetrics = enable
+	}
+}
+
+func WithEnableDbResolver(enable bool) Option {
+	return func(c *Client) {
+		c.enableDbResolver = enable
 	}
 }
 
@@ -206,5 +222,41 @@ func WithMaxOpenConns(maxOpenConns int) Option {
 func WithConnMaxLifetime(connMaxLifetime time.Duration) Option {
 	return func(c *Client) {
 		c.connMaxLifetime = &connMaxLifetime
+	}
+}
+
+func WithTracingOptions(opts ...tracing.Option) Option {
+	return func(c *Client) {
+		c.tracingOption = append(c.tracingOption, opts...)
+	}
+}
+
+func WithTracerProvider(provider trace.TracerProvider) Option {
+	return func(c *Client) {
+		c.tracingOption = append(c.tracingOption, tracing.WithTracerProvider(provider))
+	}
+}
+
+func WithTracingAttributes(attrs ...attribute.KeyValue) Option {
+	return func(c *Client) {
+		c.tracingOption = append(c.tracingOption, tracing.WithAttributes(attrs...))
+	}
+}
+
+func WithTracingDBSystem(name string) Option {
+	return func(c *Client) {
+		c.tracingOption = append(c.tracingOption, tracing.WithAttributes(semconv.DBSystemNameKey.String(name)))
+	}
+}
+
+func WithTracingWithoutMetrics() Option {
+	return func(c *Client) {
+		c.tracingOption = append(c.tracingOption, tracing.WithoutMetrics())
+	}
+}
+
+func WithTracingWithoutServerAddress() Option {
+	return func(c *Client) {
+		c.tracingOption = append(c.tracingOption, tracing.WithoutServerAddress())
 	}
 }
