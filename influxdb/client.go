@@ -11,23 +11,24 @@ type Client struct {
 	cli *influxdb3.Client
 
 	log *log.Helper
+
+	options *influxdb3.ClientConfig
 }
 
 func NewClient(opts ...Option) (*Client, error) {
-	c := &Client{}
-
-	var opt options
-	for _, o := range opts {
-		o(&opt)
+	c := &Client{
+		options: &influxdb3.ClientConfig{},
 	}
 
-	if opt.Logger != nil {
-		c.log = opt.Logger
-	} else {
+	for _, o := range opts {
+		o(c)
+	}
+
+	if c.log == nil {
 		c.log = log.NewHelper(log.DefaultLogger)
 	}
 
-	if err := c.createInfluxdbClient(&opt); err != nil {
+	if err := c.createInfluxdbClient(c.options); err != nil {
 		return nil, err
 	}
 
@@ -35,13 +36,8 @@ func NewClient(opts ...Option) (*Client, error) {
 }
 
 // createInfluxdbClient 创建InfluxDB客户端
-func (c *Client) createInfluxdbClient(opt *options) error {
-	client, err := influxdb3.New(influxdb3.ClientConfig{
-		Host:         opt.Host,
-		Token:        opt.Token,
-		Database:     opt.Database,
-		Organization: opt.Organization,
-	})
+func (c *Client) createInfluxdbClient(opt *influxdb3.ClientConfig) error {
+	client, err := influxdb3.New(*opt)
 	if err != nil {
 		c.log.Errorf("failed to create influxdb client: %v", err)
 		return err
