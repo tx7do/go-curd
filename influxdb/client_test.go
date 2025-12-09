@@ -202,3 +202,24 @@ func TestClient_Query(t *testing.T) {
 		)
 	}
 }
+
+func TestExecQuery_QueryError(t *testing.T) {
+	client := createTestClient()
+	assert.NotNil(t, client)
+
+	ctx := context.Background()
+
+	_, err := client.ExecInfluxQLQuery(ctx, "SELECT * FROM nonexistent")
+	assert.Nil(t, err)
+}
+
+func TestExecCount_QueryNotError(t *testing.T) {
+	client := createTestClient()
+	assert.NotNil(t, client)
+
+	ctx := context.Background()
+
+	count, err := client.Count(ctx, "SELECT COUNT(*) FROM candles")
+	assert.Nil(t, err)
+	assert.Equal(t, count, int64(4))
+}

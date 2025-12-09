@@ -10,6 +10,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tx7do/go-crud v0.0.5
 	github.com/tx7do/go-utils v1.1.34
+	github.com/tx7do/go-utils/mapper v0.0.3
 	google.golang.org/protobuf v1.36.10
 )
 
@@ -23,6 +24,7 @@ require (
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/influxdata/line-protocol/v2 v2.2.1 // indirect
+	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect

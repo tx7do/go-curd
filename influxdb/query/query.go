@@ -2,6 +2,7 @@ package query
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 )
@@ -35,6 +36,28 @@ func (qb *Builder) Select(fields []string) *Builder {
 		qb.fields = fields
 	}
 	return qb
+}
+
+// Where 接受任意类型的条件并分发处理：
+// - string / []string -> WhereFromRaw
+// - map[string]interface{} / map[string]any -> WhereFromMaps (operators=nil)
+// 其它类型忽略返回原 qb
+func (qb *Builder) Where(cond any) *Builder {
+	switch v := cond.(type) {
+	case string:
+		return qb.WhereFromRaw(v)
+	case []string:
+		return qb.WhereFromRaw(v...)
+	case map[string]any:
+		// 将 map[string]any 转为 map[string]interface{}
+		m := make(map[string]interface{}, len(v))
+		for k, val := range v {
+			m[k] = val
+		}
+		return qb.WhereFromMaps(m, nil)
+	default:
+		return qb
+	}
 }
 
 // WhereFromMaps 根据 filters 和 operators 构造 WHERE 子句
@@ -87,6 +110,137 @@ func (qb *Builder) WhereFromMaps(filters map[string]interface{}, operators map[s
 		qb.where = append(qb.where, expr)
 	}
 
+	return qb
+}
+
+// WhereFromAny 接受任意类型的 filters 并分发到相应处理：
+// - map[string]interface{} / map[string]any -> WhereFromMaps
+// - string -> WhereFromRaw
+// - struct / *struct -> 提取导出字段 (优先使用 json tag) 并调用 WhereFromMaps
+// - 其它 -> 尝试 fmt.Sprintf 转为字符串并当作 raw 条件
+func (qb *Builder) WhereFromAny(filters any, operators map[string]string) *Builder {
+	if filters == nil {
+		return qb
+	}
+
+	switch v := filters.(type) {
+	case map[string]any:
+		m := make(map[string]interface{}, len(v))
+		for k, val := range v {
+			m[k] = val
+		}
+		return qb.WhereFromMaps(m, operators)
+	case string:
+		return qb.WhereFromRaw(v)
+	}
+
+	// 支持 struct 或 *struct，通过反射提取导出字段，优先使用 json tag
+	rv := reflect.ValueOf(filters)
+	for rv.Kind() == reflect.Ptr {
+		if rv.IsNil() {
+			return qb
+		}
+		rv = rv.Elem()
+	}
+	if rv.IsValid() && rv.Kind() == reflect.Struct {
+		rt := rv.Type()
+		m := make(map[string]interface{})
+		for i := 0; i < rt.NumField(); i++ {
+			f := rt.Field(i)
+			// 只处理导出字段
+			if f.PkgPath != "" {
+				continue
+			}
+			name := f.Tag.Get("json")
+			if name == "" {
+				name = f.Name
+			} else {
+				// tag 可能包含 omitempty 等，取逗号前部分
+				name = strings.Split(name, ",")[0]
+				if name == "" {
+					name = f.Name
+				}
+			}
+			val := rv.Field(i).Interface()
+			m[name] = val
+		}
+		return qb.WhereFromMaps(m, operators)
+	}
+
+	// 兜底：格式化为字符串作为 raw 条件
+	str := strings.TrimSpace(fmt.Sprintf("%v", filters))
+	if str != "" {
+		return qb.WhereFromRaw(str)
+	}
+	return qb
+}
+
+// WhereFromAnys 接收混合类型的条件并分发处理：
+// - string / []string -> WhereFromRaw
+// - []any -> 递归处理每个元素
+// - map[string]interface{} / map[string]any -> WhereFromMaps (operators=nil)
+// - fmt.Stringer -> 使用 String()
+// 其它类型尝试用 fmt.Sprintf("%v") 转为字符串并当作 raw 片段（若非空）
+func (qb *Builder) WhereFromAnys(raws ...any) *Builder {
+	if len(raws) == 0 {
+		return qb
+	}
+	for _, r := range raws {
+		if r == nil {
+			continue
+		}
+		switch v := r.(type) {
+		case string:
+			qb.WhereFromRaw(v)
+		case []string:
+			qb.WhereFromRaw(v...)
+		case []any:
+			// 递归处理任意切片
+			for _, item := range v {
+				qb.WhereFromAnys(item)
+			}
+		case map[string]any:
+			m := make(map[string]interface{}, len(v))
+			for k, val := range v {
+				m[k] = val
+			}
+			qb.WhereFromMaps(m, nil)
+		default:
+			if s, ok := v.(fmt.Stringer); ok {
+				qb.WhereFromRaw(s.String())
+				continue
+			}
+			// fallback: 尝试格式化为字符串
+			str := strings.TrimSpace(fmt.Sprintf("%v", v))
+			if str != "" {
+				qb.WhereFromRaw(str)
+			}
+		}
+	}
+	return qb
+}
+
+// WhereFromRaw 接受一个或多个原始 WHERE 条件片段，
+// 会去掉空白并移除可选的前缀 "WHERE"，然后追加到 qb.where 中。
+func (qb *Builder) WhereFromRaw(raws ...string) *Builder {
+	if len(raws) == 0 {
+		return qb
+	}
+	for _, r := range raws {
+		if r == "" {
+			continue
+		}
+		s := strings.TrimSpace(r)
+		if s == "" {
+			continue
+		}
+		// 如果传入以 "WHERE " 开头，去掉该前缀以避免重复
+		l := strings.ToLower(s)
+		if strings.HasPrefix(l, "where ") {
+			s = strings.TrimSpace(s[len("where "):])
+		}
+		qb.where = append(qb.where, s)
+	}
 	return qb
 }
 

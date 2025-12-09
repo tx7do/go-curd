@@ -3,6 +3,7 @@ package influxdb
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestBuildQuery(t *testing.T) {
@@ -149,5 +150,95 @@ func TestBuildQueryWithParams(t *testing.T) {
 			}
 			//t.Log(query)
 		})
+	}
+}
+
+// 用 struct tag 标记字段角色：tag/field/time/measurement
+type SensorData struct {
+	// influx:"tag"：标记为 tag（必须是 string 类型）
+	DeviceID string `influx:"tag" json:"device_id"`
+	Location string `influx:"tag" json:"location"`
+	// influx:"field"：标记为 field（支持多种类型）
+	Temperature float64 `influx:"field" json:"temperature"`
+	Humidity    float64 `influx:"field" json:"humidity"`
+	Battery     int64   `influx:"field" json:"battery"`
+	IsOnline    bool    `influx:"field" json:"is_online"`
+	// influx:"time"：标记为时间戳（必须是 time.Time 类型）
+	Timestamp time.Time `influx:"time" json:"timestamp"`
+	// influx:"measurement"：可选，标记 measurement 名称（也可硬编码）
+	// 若多个 struct 对应不同 measurement，可通过 tag 指定
+	Measurement string `influx:"measurement" json:"-"` // json:"-" 忽略序列化
+}
+
+func TestStructToPoint_SensorData_Success(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Nanosecond)
+	sd := &SensorData{
+		Measurement: "sensors",
+		DeviceID:    "dev-1",
+		Location:    "room1",
+		Temperature: 23.5,
+		Humidity:    55.2,
+		Battery:     95,
+		IsOnline:    true,
+		Timestamp:   now,
+	}
+
+	pt, err := StructToPoint(sd)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if pt == nil {
+		t.Fatalf("expected non-nil point")
+	}
+
+	// tag 检查（字段名会被转换为 snake_case）
+	if v, ok := pt.GetTag("device_id"); !ok || v != "dev-1" {
+		t.Fatalf("expected tag device_id=dev-1, got %v (ok=%v)", v, ok)
+	}
+	if v, ok := pt.GetTag("location"); !ok || v != "room1" {
+		t.Fatalf("expected tag location=room1, got %v (ok=%v)", v, ok)
+	}
+
+	// field 检查
+	if v := pt.GetField("temperature"); v == nil {
+		t.Fatalf("expected field temperature present")
+	} else if fv, ok := v.(float64); !ok || fv != 23.5 {
+		t.Fatalf("expected temperature=23.5, got %v", v)
+	}
+
+	if v := pt.GetField("humidity"); v == nil {
+		t.Fatalf("expected field humidity present")
+	} else if fv, ok := v.(float64); !ok || fv != 55.2 {
+		t.Fatalf("expected humidity=55.2, got %v", v)
+	}
+
+	if v := pt.GetField("battery"); v == nil {
+		t.Fatalf("expected field battery present")
+	} else if fv, ok := v.(int64); !ok || fv != int64(95) {
+		t.Fatalf("expected battery=95 (int64), got %v (ok=%v)", v, ok)
+	}
+
+	if v := pt.GetField("is_online"); v == nil {
+		t.Fatalf("expected field is_online present")
+	} else if fv, ok := v.(bool); !ok || fv != true {
+		t.Fatalf("expected is_online=true, got %v", v)
+	}
+}
+
+func TestStructToPoint_SensorData_MissingMeasurement(t *testing.T) {
+	sd := &SensorData{
+		Measurement: "",
+		DeviceID:    "dev-1",
+		Location:    "room1",
+		Temperature: 23.5,
+		Humidity:    55.2,
+		Battery:     95,
+		IsOnline:    true,
+		Timestamp:   time.Now(),
+	}
+
+	_, err := StructToPoint(sd)
+	if err == nil {
+		t.Fatalf("expected error when measurement is empty")
 	}
 }
