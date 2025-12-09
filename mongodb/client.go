@@ -14,26 +14,28 @@ import (
 type Client struct {
 	log *log.Helper
 
-	cli      *mongoV2.Client
+	cli     *mongoV2.Client
+	options []*optionsV2.ClientOptions
+
 	database string
-	timeout  time.Duration
+	timeout  time.Duration // 默认超时时间
 }
 
 func NewClient(opts ...Option) (*Client, error) {
-	c := &Client{}
-
-	var opt options
-	for _, o := range opts {
-		o(&opt)
+	c := &Client{
+		options: []*optionsV2.ClientOptions{},
+		timeout: 10 * time.Second,
 	}
 
-	if opt.Logger != nil {
-		c.log = opt.Logger
-	} else {
+	for _, o := range opts {
+		o(c)
+	}
+
+	if c.log == nil {
 		c.log = log.NewHelper(log.NewStdLogger(os.Stderr))
 	}
 
-	if err := c.createMongodbClient(&opt); err != nil {
+	if err := c.createMongodbClient(c.options); err != nil {
 		return nil, err
 	}
 
@@ -41,49 +43,11 @@ func NewClient(opts ...Option) (*Client, error) {
 }
 
 // createMongodbClient 创建MongoDB客户端
-func (c *Client) createMongodbClient(opt *options) error {
-	var opts []*optionsV2.ClientOptions
-
-	if opt.URI != "" {
-		opts = append(opts, optionsV2.Client().ApplyURI(opt.URI))
-	}
-	if opt.Username != "" && opt.Password != "" {
-		credential := optionsV2.Credential{
-			Username: opt.Username,
-			Password: opt.Password,
-		}
-
-		if opt.Password != "" {
-			credential.PasswordSet = true
-		}
-
-		opts = append(opts, optionsV2.Client().SetAuth(credential))
-	}
-	if opt.ConnectTimeout != nil {
-		opts = append(opts, optionsV2.Client().SetConnectTimeout(*opt.ConnectTimeout))
-	}
-	if opt.ServerSelectionTimeout != nil {
-		opts = append(opts, optionsV2.Client().SetServerSelectionTimeout(*opt.ServerSelectionTimeout))
-	}
-	if opt.Timeout != nil {
-		opts = append(opts, optionsV2.Client().SetTimeout(*opt.Timeout))
-	}
-
-	opts = append(opts, optionsV2.Client().SetBSONOptions(&optionsV2.BSONOptions{
-		UseJSONStructTags: true, // 使用JSON结构标签
-	}))
-
-	cli, err := mongoV2.Connect(opts...)
+func (c *Client) createMongodbClient(options []*optionsV2.ClientOptions) error {
+	cli, err := mongoV2.Connect(options...)
 	if err != nil {
 		c.log.Errorf("failed to create mongodb client: %v", err)
 		return err
-	}
-
-	c.database = opt.Database
-	if opt.Timeout != nil {
-		c.timeout = *opt.Timeout
-	} else {
-		c.timeout = 10 * time.Second // 默认超时时间
 	}
 
 	c.cli = cli
