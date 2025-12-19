@@ -37,7 +37,7 @@ func TestProcessor_Process_ReturnsBuilder_NoPanic(t *testing.T) {
 
 	for _, op := range ops {
 		qb := &query.Builder{}
-		got := proc.Process(qb, op, "name", "val", []string{"a", "b"})
+		got := proc.Process(qb, op, "name", "val", []any{"a", "b"})
 		if got == nil {
 			t.Fatalf("Process returned nil for op %v", op)
 		}
@@ -68,7 +68,7 @@ func TestProcessor_SpecificCases_ReturnsBuilder(t *testing.T) {
 
 	t.Run("NotIn_WithValues_ReturnsBuilder", func(t *testing.T) {
 		qb := &query.Builder{}
-		got := proc.NotIn(qb, "status", "", []string{"x", "y"})
+		got := proc.NotIn(qb, "status", "", []any{"x", "y"})
 		if got == nil || got != qb {
 			t.Fatalf("NotIn should return the same non-nil builder")
 		}

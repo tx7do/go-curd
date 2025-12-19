@@ -109,7 +109,7 @@ func CreateDriver(driverName, dsn string, enableTrace, enableMetrics bool) (*ent
 
 	// Register DB stats to meter
 	if enableMetrics {
-		err = otelsql.RegisterDBStatsMetrics(db, otelsql.WithAttributes(
+		_, err = otelsql.RegisterDBStatsMetrics(db, otelsql.WithAttributes(
 			driverNameToSemConvKeyValue(driverName),
 		))
 		if err != nil {

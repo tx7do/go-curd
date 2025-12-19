@@ -5,7 +5,7 @@ go 1.24.6
 replace github.com/tx7do/go-crud => ../
 
 require (
-	github.com/go-kratos/kratos/v2 v2.9.1
+	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/gocql/gocql v1.7.0
 )
 

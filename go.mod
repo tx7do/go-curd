@@ -5,7 +5,7 @@ go 1.24.6
 require (
 	github.com/google/gnostic v0.7.1
 	github.com/tx7do/go-utils v1.1.34
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
